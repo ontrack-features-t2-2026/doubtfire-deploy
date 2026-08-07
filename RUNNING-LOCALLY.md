@@ -7,6 +7,7 @@ to fix them.
 
 - doubtfire-api: the backend (Rails). Port 3000.
 - doubtfire-web: the frontend (Angular). Port 4200.
+- Mailpit: catches every email the app sends. Web inbox on port 8025.
 - A database (MariaDB) and Redis. Docker starts these for you.
 
 ## Before you start
@@ -98,6 +99,7 @@ things. It leaves out the second `-f` flag and fails on an empty build context.
 
    - Web: http://localhost:4200
    - API docs: http://localhost:3000/api/docs
+   - Mail inbox: http://localhost:8025
 
 5. Log in. Every test user has the password "password".
 
@@ -115,18 +117,38 @@ things. It leaves out the second `-f` flag and fails on an empty build context.
 
 ## Where the emails go
 
-The app does not send real email in development. It writes each one to a file.
+**Open http://localhost:8025**
 
-Those files land in **doubtfire-deploy/data/tmp/mails/**, because the container mounts
-`../data/tmp` over its own `tmp` folder.
+That is Mailpit, a mail catcher. Every email the app sends arrives there and you can read
+it in your browser, subject, recipient and all. New mail appears without reloading the page.
 
-The comment in `doubtfire-api/config/environments/development.rb` says they land in
-`doubtfire-api/tmp/mails`. That comment is wrong under Docker. Looking there shows you an
-empty folder and makes it look like email is broken.
+The app never sends real email in development. Mailpit accepts everything and forwards
+nothing, so you can safely put your own address on a test account.
 
-If the mails folder is not there at all, no email has been sent yet.
+- Web inbox: http://localhost:8025
+- The api sends to it over SMTP on port 1025 inside Docker.
 
-A mail catcher with a real web inbox is planned (ticket EN-F02) and will replace this.
+If the inbox stays empty:
+
+1. Check the container is running: `docker ps | grep mailpit`
+2. Check the api knows about it:
+
+    docker exec doubtfire-api printenv DF_SMTP_ADDRESS
+
+   You want `df-compose-mailpit`. If it is blank, your api container was started before the
+   mail catcher was added. Recreate it:
+
+    docker compose -f docker-compose.yml -f docker-compose.local-paths.yml up -d doubtfire-api
+
+   A plain `restart` is not enough. Environment variables only change on recreate.
+
+**Without Docker**, or if `DF_SMTP_ADDRESS` is unset, the api falls back to writing each
+email to a file under `doubtfire-deploy/data/tmp/mails/`. One file per recipient address,
+with new mail appended to the end. That is the old behaviour and it still works.
+
+The comment in `doubtfire-api/config/environments/development.rb` used to say mail landed in
+`doubtfire-api/tmp/mails`, which was wrong under Docker and sent people looking in an empty
+folder in the wrong repository. That comment is now fixed.
 
 ## How to check it is working
 
@@ -141,6 +163,14 @@ A mail catcher with a real web inbox is planned (ticket EN-F02) and will replace
 - Check the web can reach the api through its proxy. You want 200:
 
     docker exec doubtfire-web curl -s -o /dev/null -w "%{http_code}\n" localhost:4200/api/settings
+
+- Check the mail catcher answers. You want 200:
+
+    curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8025/
+
+- List what is in the mail inbox without opening a browser:
+
+    curl -s http://localhost:8025/api/v1/messages | head -c 400
 
 - Read the logs:
 
@@ -201,7 +231,49 @@ A mail catcher with a real web inbox is planned (ticket EN-F02) and will replace
 
    This does not delete your database. That lives in a bind-mounted folder, not a volume.
 
-9. `git status` in doubtfire-deploy shows an untracked `doubtfire-overseer/` folder.
+9. You trigger an email and nothing appears at http://localhost:8025.
+   Cause: nearly always an api container started before the mail catcher existed, so it
+   still has no `DF_SMTP_ADDRESS` and is writing files instead.
+   Fix: recreate it. `restart` does not pick up new environment variables.
+
+    docker compose -f docker-compose.yml -f docker-compose.local-paths.yml up -d doubtfire-api
+
+   Confirm with `docker exec doubtfire-api printenv DF_SMTP_ADDRESS`, which should print
+   `df-compose-mailpit`.
+
+10. The api container will not start. Error: "Could not find <some gem> in locally installed
+   gems (Bundler::GemNotFound)".
+   Cause: somebody added a gem to the api `Gemfile`. Gems are installed into the image when
+   it is built, not into a volume, so a container started from the old image does not have
+   it. The api then crash-loops before it ever listens on port 3000.
+   Fix: rebuild the image.
+
+    docker compose -f docker-compose.yml -f docker-compose.local-paths.yml up -d --build doubtfire-api
+
+   Running `bundle install` with `docker exec` looks like it works and does not survive.
+   The gems land in the running container's writable layer and are thrown away the next
+   time the container is recreated.
+
+11. The app starts throwing 500s while you are using it, and the log says
+   "ActiveRecord::LockWaitTimeout: Lock wait timeout exceeded".
+   Cause: **the test suite and the app share one database.** The compose file sets
+   `DF_TEST_DB_DATABASE` and `DF_DEV_DB_DATABASE` to the same value, `doubtfire-dev`. Tests
+   hold long transactions, so anything you do in the browser at the same time queues behind
+   them until it times out. Tests also change and delete your seeded data.
+   Fix: do not run `rails test` while anyone is using the app, and never during a demo. Run
+   `rake db:populate` afterwards if your data looks wrong.
+
+   This is not something the notification work introduced. It is how the stack has always
+   been configured.
+
+12. You post a comment, get a 403 back, and no email arrives. The error says "Comment
+   duplicates last comment, so ignored".
+   Cause: OnTrack drops a comment whose text is identical to the previous comment on that
+   task. No comment is created, so no notification and no email. This is existing behaviour
+   in `app/api/task_comments_api.rb`, not something notifications introduced.
+   Fix: type something different. When rehearsing a demo, vary the text each time.
+
+13. `git status` in doubtfire-deploy shows an untracked `doubtfire-overseer/` folder.
    Cause: it is a leftover checkout from another branch. `11.0.x` does not use it. Most
    people will never see it.
    Fix: none needed. Leave it alone. Do not `git add` it and do not delete it.

@@ -17,6 +17,19 @@ services:
     volumes:
       - redis_sidekiq_data:/data
 
+  # Mail catcher. Accepts every email the app sends and shows it in a web inbox
+  # at http://localhost:8025. Nothing is delivered to the outside world.
+  mailpit:
+    container_name: df-compose-mailpit
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"   # web inbox, open this in a browser
+      - "1025:1025"   # smtp, what the api sends to
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
   doubtfire-api:
     container_name: doubtfire-api
     image: lmsdoubtfire/doubtfire-api:8.0.x-dev
@@ -29,8 +42,26 @@ services:
       - ../data/student-work:/student-work
     depends_on:
       - dev-db
+      - mailpit
     environment:
       RAILS_ENV: 'development'
+
+      # Mail catcher. Setting DF_SMTP_ADDRESS is what switches the api from
+      # writing mail to a file to sending it to mailpit. Unset it and the api
+      # falls back to files, so running without docker still works.
+      DF_SMTP_ADDRESS: df-compose-mailpit
+      DF_SMTP_PORT: 1025
+
+      # Web push. Without these the push channel is a no-op and the app behaves
+      # exactly as it did before push existed, so it is safe to blank them out.
+      #
+      # This is a throwaway pair generated for local development only, following
+      # the same convention as DF_SECRET_KEY_BASE below. Production sets its own
+      # through real secrets and must never reuse these.
+      # See doubtfire-api/docs/notifications/push-setup.md to generate your own.
+      DOUBTFIRE_VAPID_PUBLIC_KEY: 'BOs-KbIoHK7gUIX3i2_uEuDoouj-GKxB-mY9CRmLNmd4Wn-SSl254E1g6jR1ukL3e37p8uCpaMjOvfAB0BwzvSI='
+      DOUBTFIRE_VAPID_PRIVATE_KEY: '_NFIWSUTdCdLJJFh87pf4ekQLmNYqsweZ4288NpVZaY='
+      DOUBTFIRE_VAPID_SUBJECT: 'mailto:noreply@doubtfire.local'
 
       DF_STUDENT_WORK_DIR: /student-work
       DF_INSTITUTION_HOST: http://localhost:3000
