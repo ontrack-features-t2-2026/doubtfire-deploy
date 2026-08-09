@@ -177,6 +177,36 @@ folder in the wrong repository. That comment is now fixed.
     docker logs doubtfire-api
     docker logs doubtfire-web
 
+## Asking for help
+
+Grab these before you ask. The second one answers most questions on its own.
+
+    docker ps -a
+    docker logs --tail 200 doubtfire-api > api-log.txt 2>&1
+    docker logs --tail 200 doubtfire-web > web-log.txt 2>&1
+
+Use `docker ps -a` and not `docker ps`. Plain `docker ps` hides containers that have already
+exited, and a container that exited is usually the whole problem. If `doubtfire-api` is
+missing from `docker ps` but says Exited in `docker ps -a`, that is your answer and its log
+says why.
+
+**Send logs as text, not as a screenshot.** Attach the two files, or paste the output inside
+a fenced code block with three backticks. A screenshot of a terminal crops the part that
+matters, cannot be searched, and in a Ruby crash the line you need is usually well below the
+line you can see. Text can be matched against the errors in the next section in seconds. A
+screenshot cannot.
+
+Screenshots are still the right thing for anything visual. "The page says Temporarily
+Unavailable" is a screenshot, because the rendering is the evidence. Anything with a stack
+trace in it is text.
+
+Say which branch each repo is on as well, and whether you used both `-f` flags. A lot of the
+answers below turn on those two things. From `doubtfire-deploy/development`:
+
+    git branch --show-current
+    git -C ../../doubtfire-api branch --show-current
+    git -C ../../doubtfire-web branch --show-current
+
 ## Problems and fixes
 
 1. The api will not start. Error: "Your Ruby version is 3.1.7, but your Gemfile specified
