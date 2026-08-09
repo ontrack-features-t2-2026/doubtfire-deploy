@@ -182,8 +182,22 @@ folder in the wrong repository. That comment is now fixed.
 Grab these before you ask. The second one answers most questions on its own.
 
     docker ps -a
+
+On macOS or Linux:
+
     docker logs --tail 200 doubtfire-api > api-log.txt 2>&1
     docker logs --tail 200 doubtfire-web > web-log.txt 2>&1
+
+**On Windows, wrap it in `cmd /c` or the file comes out unreadable.**
+
+    cmd /c "docker logs --tail 200 doubtfire-api > api-log.txt 2>&1"
+    cmd /c "docker logs --tail 200 doubtfire-web > web-log.txt 2>&1"
+
+PowerShell does two things to a plain `>` redirect that ruin the file. It writes UTF-16, so
+every character comes out with a null byte next to it and most tools see binary rather than
+text. And it treats anything the command sends to stderr as a PowerShell error object, so the
+real message gets buried under `At line:1 char:1`, `CategoryInfo` and `FullyQualifiedErrorId`
+noise, with the actual error split away from its own stack trace. `cmd /c` does neither.
 
 Use `docker ps -a` and not `docker ps`. Plain `docker ps` hides containers that have already
 exited, and a container that exited is usually the whole problem. If `doubtfire-api` is
