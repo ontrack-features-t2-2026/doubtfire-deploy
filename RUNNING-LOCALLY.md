@@ -257,23 +257,31 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
 
    Stop everything first, or the delete fails on files that are still open:
 
-    docker compose -f docker-compose.yml -f docker-compose.local-paths.yml down
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml down
+   ```
 
    Then delete the folder. On macOS or Linux:
 
-    rm -rf ../data/database
+   ```bash
+   rm -rf ../data/database
+   ```
 
    On Windows, in PowerShell:
 
-    Remove-Item -Recurse -Force ..\data\database
+   ```powershell
+   Remove-Item -Recurse -Force ..\data\database
+   ```
 
    Then bring the stack back up and populate. Docker recreates the folder for you, and
    MariaDB sets itself up from scratch on first boot, so give it a few seconds before the
    populate.
 
-    docker compose -f docker-compose.yml -f docker-compose.local-paths.yml up -d
-    docker compose -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api \
-      bash -c "bundle exec rake db:populate"
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml up -d
+
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api bash -c "bundle exec rake db:populate"
+   ```
 
    This deletes your local data. That is fine. Everything in it came from `db:populate` and
    the command above puts it all back.
@@ -373,11 +381,11 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
    the gems are only in the container. Nothing needs to be installed on your machine.
    Fix: use the whole command from step 2. The part before `bash -c` is not optional.
 
-    docker compose -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api \
-      bash -c "bundle exec rake db:populate"
+     ```bash
+     docker compose -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api bash -c "bundle exec rake db:populate"
+     ```
 
-   PowerShell does not accept the trailing `\` for line continuation. Put it all on one
-   line, or use a backtick.
+     This single-line form avoids the PowerShell line-continuation issue.
 
 ## Notes
 
