@@ -177,6 +177,50 @@ folder in the wrong repository. That comment is now fixed.
     docker logs doubtfire-api
     docker logs doubtfire-web
 
+## Asking for help
+
+Grab these before you ask. The second one answers most questions on its own.
+
+    docker ps -a
+
+On macOS or Linux:
+
+    docker logs --tail 200 doubtfire-api > api-log.txt 2>&1
+    docker logs --tail 200 doubtfire-web > web-log.txt 2>&1
+
+**On Windows, wrap it in `cmd /c` or the file comes out unreadable.**
+
+    cmd /c "docker logs --tail 200 doubtfire-api > api-log.txt 2>&1"
+    cmd /c "docker logs --tail 200 doubtfire-web > web-log.txt 2>&1"
+
+PowerShell does two things to a plain `>` redirect that ruin the file. It writes UTF-16, so
+every character comes out with a null byte next to it and most tools see binary rather than
+text. And it treats anything the command sends to stderr as a PowerShell error object, so the
+real message gets buried under `At line:1 char:1`, `CategoryInfo` and `FullyQualifiedErrorId`
+noise, with the actual error split away from its own stack trace. `cmd /c` does neither.
+
+Use `docker ps -a` and not `docker ps`. Plain `docker ps` hides containers that have already
+exited, and a container that exited is usually the whole problem. If `doubtfire-api` is
+missing from `docker ps` but says Exited in `docker ps -a`, that is your answer and its log
+says why.
+
+**Send logs as text, not as a screenshot.** Attach the two files, or paste the output inside
+a fenced code block with three backticks. A screenshot of a terminal crops the part that
+matters, cannot be searched, and in a Ruby crash the line you need is usually well below the
+line you can see. Text can be matched against the errors in the next section in seconds. A
+screenshot cannot.
+
+Screenshots are still the right thing for anything visual. "The page says Temporarily
+Unavailable" is a screenshot, because the rendering is the evidence. Anything with a stack
+trace in it is text.
+
+Say which branch each repo is on as well, and whether you used both `-f` flags. A lot of the
+answers below turn on those two things. From `doubtfire-deploy/development`:
+
+    git branch --show-current
+    git -C ../../doubtfire-api branch --show-current
+    git -C ../../doubtfire-web branch --show-current
+
 ## Problems and fixes
 
 1. The api will not start. Error: "Your Ruby version is 3.1.7, but your Gemfile specified
@@ -207,7 +251,46 @@ folder in the wrong repository. That comment is now fixed.
    The database lives in a folder on your machine (`doubtfire-deploy/data/database`), so
    `docker compose down -v` does not clear it. Step 2 is the way to reset it.
 
+   **If step 2 fails too, you need the hard reset below.** Step 2 asks MariaDB to drop the
+   database, and a server that cannot read its own files cannot drop them either. Deleting
+   the folder is the only thing that clears it.
+
+   Stop everything first, or the delete fails on files that are still open:
+
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml down
+   ```
+
+   Then delete the folder. On macOS or Linux:
+
+   ```bash
+   rm -rf ../data/database
+   ```
+
+   On Windows, in PowerShell:
+
+   ```powershell
+   Remove-Item -Recurse -Force ..\data\database
+   ```
+
+   Then bring the stack back up and populate. Docker recreates the folder for you, and
+   MariaDB sets itself up from scratch on first boot, so give it a few seconds before the
+   populate.
+
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml up -d
+
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api bash -c "bundle exec rake db:populate"
+   ```
+
+   This deletes your local data. That is fine. Everything in it came from `db:populate` and
+   the command above puts it all back.
+
 6. The app loads but shows "Temporarily Unavailable" and the title stays "Loading...".
+   **Check the api is running before you read any further.** `docker ps` hides containers
+   that have exited, so run `docker ps -a` and look for `doubtfire-api`. If it is missing or
+   says Exited, this is not a proxy problem, it is problems 5, 10 or 14, and `docker logs
+   doubtfire-api` says which.
    Cause: the web app cannot reach the api. The proxy points at localhost:3000, which is
    wrong inside the container. The api is a different container named doubtfire-api.
    Fix: already fixed. The local-paths file mounts `proxy.conf.docker.json`, which points at
@@ -277,6 +360,32 @@ folder in the wrong repository. That comment is now fixed.
    Cause: it is a leftover checkout from another branch. `11.0.x` does not use it. Most
    people will never see it.
    Fix: none needed. Leave it alone. Do not `git add` it and do not delete it.
+
+14. `rake db:populate` fails part way through. Error: "Error on rename of
+   './doubtfire@002ddev/<some table>' to './doubtfire@002ddev/#sql-backup-1-7' (errno: 194
+   "Tablespace is missing for a table")".
+   Cause: the database folder holds tables MariaDB can no longer read. Either a drop left
+   the table definition behind without its data file, or the folder was written by a
+   different MariaDB version from the one running now. The compose files used to pull an
+   unpinned `mariadb` tag, so anyone who set up on a different day got a different server.
+   They are pinned now, but a folder created before the pin still has the old layout.
+   Fix: the hard reset in problem 5. Retrying `db:populate` will not help. It is the drop
+   itself that is failing.
+   You will usually see the api container die too, because it migrates on boot. Both are the
+   same problem and one reset fixes both.
+
+15. `bundle exec rake db:populate` fails instantly. On Windows the error is "WSL ... ERROR:
+   CreateProcessCommon:800: execvpe(/bin/bash) failed: No such file or directory". On macOS
+   it is "bundle: command not found".
+   Cause: the command ran on your own machine instead of inside the api container. Ruby and
+   the gems are only in the container. Nothing needs to be installed on your machine.
+   Fix: use the whole command from step 2. The part before `bash -c` is not optional.
+
+     ```bash
+     docker compose -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api bash -c "bundle exec rake db:populate"
+     ```
+
+     This single-line form avoids the PowerShell line-continuation issue.
 
 ## Notes
 

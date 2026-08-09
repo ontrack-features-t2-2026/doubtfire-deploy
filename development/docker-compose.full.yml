@@ -2,7 +2,9 @@ version: '3'
 services:
   dev-db:
     container_name: df-compose-dev-db
-    image: mariadb
+    # Pinned to match docker-compose.yml. Both files mount the same
+    # ../data/database folder, so they must agree on the server version.
+    image: mariadb:12.3
     environment:
       MYSQL_ROOT_PASSWORD: db-root-password
       MYSQL_DATABASE: doubtfire-dev
