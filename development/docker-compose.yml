@@ -2,7 +2,14 @@ version: '3'
 services:
   dev-db:
     container_name: df-compose-dev-db
-    image: mariadb
+    # Pinned on purpose. The data directory below is a bind mount on your own
+    # machine, so it survives `docker compose down -v` and gets reused forever.
+    # With an unpinned `mariadb` tag, two people who set up a month apart pull
+    # two different majors, and a data directory written by one is not readable
+    # by the other. That shows up as "Tablespace is missing for a table" during
+    # `rake db:populate`, which looks like a Rails problem and is not.
+    # See problem 14 in RUNNING-LOCALLY.md.
+    image: mariadb:12.3
     environment:
       MYSQL_ROOT_PASSWORD: db-root-password
       MYSQL_DATABASE: doubtfire-dev
