@@ -248,43 +248,27 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
    time it starts, so a half-populated database makes it crash on boot over and over, before
    it ever listens on port 3000.
    Fix: reset the database. Run step 2 above.
-   The database lives in a folder on your machine (`doubtfire-deploy/data/database`), so
-   `docker compose down -v` does not clear it. Step 2 is the way to reset it.
 
-   **If step 2 fails too, you need the hard reset below.** Step 2 asks MariaDB to drop the
-   database, and a server that cannot read its own files cannot drop them either. Deleting
-   the folder is the only thing that clears it.
-
-   Stop everything first, or the delete fails on files that are still open:
+   **If step 2 fails too, throw the database away and start it again.** Step 2 asks MariaDB
+   to drop the database, and a server that cannot read its own files cannot drop them
+   either. `-v` deletes the volume the database lives in, which is the only thing that
+   clears it.
 
    ```bash
-   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml down
-   ```
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml down -v
 
-   Then delete the folder. On macOS or Linux:
-
-   ```bash
-   rm -rf ../data/database
-   ```
-
-   On Windows, in PowerShell:
-
-   ```powershell
-   Remove-Item -Recurse -Force ..\data\database
-   ```
-
-   Then bring the stack back up and populate. Docker recreates the folder for you, and
-   MariaDB sets itself up from scratch on first boot, so give it a few seconds before the
-   populate.
-
-   ```bash
    docker compose -f docker-compose.yml -f docker-compose.local-paths.yml up -d
 
    docker compose -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api bash -c "bundle exec rake db:populate"
    ```
 
-   This deletes your local data. That is fine. Everything in it came from `db:populate` and
-   the command above puts it all back.
+   MariaDB sets itself up from scratch on first boot, so give it a few seconds after the `up`
+   before you run the populate.
+
+   This deletes your local data. That is fine, everything in it came from `db:populate` and
+   the command above puts it all back. `-v` also clears the web `node_modules` volume, so the
+   next start is slower while npm reinstalls. Your code is untouched either way: the repos
+   are bind mounted, not copied.
 
 6. The app loads but shows "Temporarily Unavailable" and the title stays "Loading...".
    **Check the api is running before you read any further.** `docker ps` hides containers
@@ -312,7 +296,8 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
     docker compose -f docker-compose.yml -f docker-compose.local-paths.yml down -v
     docker compose -f docker-compose.yml -f docker-compose.local-paths.yml up -d --build
 
-   This does not delete your database. That lives in a bind-mounted folder, not a volume.
+   **`-v` does delete your database**, because that is a volume too. Run step 2 afterwards to
+   put it back. Your code is not touched, the repos are bind mounted rather than copied.
 
 9. You trigger an email and nothing appears at http://localhost:8025.
    Cause: nearly always an api container started before the mail catcher existed, so it
@@ -364,15 +349,30 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
 14. `rake db:populate` fails part way through. Error: "Error on rename of
    './doubtfire@002ddev/<some table>' to './doubtfire@002ddev/#sql-backup-1-7' (errno: 194
    "Tablespace is missing for a table")".
-   Cause: the database folder holds tables MariaDB can no longer read. Either a drop left
-   the table definition behind without its data file, or the folder was written by a
-   different MariaDB version from the one running now. The compose files used to pull an
-   unpinned `mariadb` tag, so anyone who set up on a different day got a different server.
-   They are pinned now, but a folder created before the pin still has the old layout.
-   Fix: the hard reset in problem 5. Retrying `db:populate` will not help. It is the drop
-   itself that is failing.
-   You will usually see the api container die too, because it migrates on boot. Both are the
-   same problem and one reset fixes both.
+   **This is a Windows problem and it is not your data.** It happens on a completely fresh
+   database, so deleting things and starting again does not help. Three people tried that and
+   got the identical error on the identical table.
+   Cause: the database used to live in a bind mount, `../data/database`, a folder on your own
+   machine shared into the container. InnoDB cannot reliably rename a table across that share
+   on Windows, and it reports errno 194. Loading the schema renames tables while it adds
+   foreign keys, so `db:populate` trips over it on the first table in that pass every time.
+   It is not a Rails problem and it is not corruption. See docker-library/mariadb#331, which
+   reproduces it in three SQL statements.
+   Fix: already fixed. The database is a named Docker volume now, which lives inside Docker's
+   own filesystem and never touches the Windows one. Pull the latest `11.0.x`, then:
+
+   ```bash
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml down -v
+
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml up -d
+
+   docker compose -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api bash -c "bundle exec rake db:populate"
+   ```
+
+   The old `doubtfire-deploy/data/database` folder is dead after that and you can delete it.
+   Nothing reads it any more.
+   You will usually see the api container die too, because it migrates on boot. Same problem,
+   and the same reset fixes both.
 
 15. `bundle exec rake db:populate` fails instantly. On Windows the error is "WSL ... ERROR:
    CreateProcessCommon:800: execvpe(/bin/bash) failed: No such file or directory". On macOS

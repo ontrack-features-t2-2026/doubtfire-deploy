@@ -2,13 +2,9 @@ version: '3'
 services:
   dev-db:
     container_name: df-compose-dev-db
-    # Pinned on purpose. The data directory below is a bind mount on your own
-    # machine, so it survives `docker compose down -v` and gets reused forever.
-    # With an unpinned `mariadb` tag, two people who set up a month apart pull
-    # two different majors, and a data directory written by one is not readable
-    # by the other. That shows up as "Tablespace is missing for a table" during
-    # `rake db:populate`, which looks like a Rails problem and is not.
-    # See problem 14 in RUNNING-LOCALLY.md.
+    # Pinned so everyone runs the same server. An unpinned `mariadb` tag means
+    # two people who set up a month apart get two different majors, and a data
+    # directory written by one is not readable by the other.
     image: mariadb:12.3
     environment:
       MYSQL_ROOT_PASSWORD: db-root-password
@@ -16,7 +12,15 @@ services:
       MYSQL_USER: dfire
       MYSQL_PASSWORD: pwd
     volumes:
-      - ../data/database:/var/lib/mysql
+      # A named volume, NOT a bind mount to ../data/database. InnoDB cannot
+      # reliably rename a table on a host directory shared into the container
+      # on Windows, and it fails with errno 194, "Tablespace is missing for a
+      # table". Rails hits that on a clean `rake db:populate`, because loading
+      # the schema renames tables while adding foreign keys. It reads as a
+      # Rails or a data corruption problem and is neither: the same database
+      # on a named volume is fine. docker-library/mariadb#331.
+      # docs/ONTRACK_PODMAN_SETUP.md reached the same conclusion for Podman.
+      - db_data:/var/lib/mysql
 
   redis-sidekiq:
     container_name: df-compose-redis-sidekiq
@@ -135,5 +139,6 @@ services:
       - web_node_modules:/doubtfire-web/node_modules
 
 volumes:
+  db_data:
   web_node_modules:
   redis_sidekiq_data:

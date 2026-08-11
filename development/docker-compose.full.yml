@@ -2,8 +2,8 @@ version: '3'
 services:
   dev-db:
     container_name: df-compose-dev-db
-    # Pinned to match docker-compose.yml. Both files mount the same
-    # ../data/database folder, so they must agree on the server version.
+    # Kept identical to docker-compose.yml. Both share the db_data volume, so
+    # they must agree on the server version and on the mount.
     image: mariadb:12.3
     environment:
       MYSQL_ROOT_PASSWORD: db-root-password
@@ -11,7 +11,9 @@ services:
       MYSQL_USER: dfire
       MYSQL_PASSWORD: pwd
     volumes:
-      - ../data/database:/var/lib/mysql
+      # Named volume, not ../data/database. See the comment in
+      # docker-compose.yml for why a bind mount breaks InnoDB on Windows.
+      - db_data:/var/lib/mysql
 
   doubtfire-api:
     container_name: doubtfire-api
@@ -138,3 +140,6 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: secure_credentials
       RABBITMQ_DEFAULT_PASS: secure_credentials
+
+volumes:
+  db_data:
