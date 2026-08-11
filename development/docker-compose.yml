@@ -11,6 +11,10 @@ services:
       MYSQL_DATABASE: doubtfire-dev
       MYSQL_USER: dfire
       MYSQL_PASSWORD: pwd
+      # Peer Progress Indicator local development defaults.
+      # Production must set reviewed deployment values separately.
+      DF_PPI_MINIMUM_COHORT_SIZE: '5'
+      DF_PPI_STALE_AFTER_HOURS: '48'
     volumes:
       # A named volume, NOT a bind mount to ../data/database. InnoDB cannot
       # reliably rename a table on a host directory shared into the container
