@@ -52,6 +52,10 @@ does not go there.
 - **doubtfire-api** and **doubtfire-web**: `feature/notifications`, or your own work branch
   made from it.
 - **doubtfire-deploy**: `11.0.x`.
+- **Peer Progress Indicator work**: use `ppi/student-progress-endpoint` for
+  **doubtfire-api** while API PR #16 is open. After it merges, use
+  `feature/peer-progress-indicator`. Use `feature/peer-progress-indicator` for
+  **doubtfire-web**.
 
 If `development/docker-compose.local-paths.yml` is not in your checkout, you are on the
 wrong branch, or the fix has not been merged yet. Ask the lead.
@@ -403,13 +407,49 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
   image cached under that name, Docker reuses it instead of building a new one. That is what
   causes problems 1 and 2. It is why `--build` matters.
 
-### Peer Progress Indicator configuration
+## Peer Progress Indicator configuration
 
-The local API uses the following development-only defaults:
+The local API container receives these non-secret development defaults:
 
 - `DF_PPI_MINIMUM_COHORT_SIZE=5`
 - `DF_PPI_STALE_AFTER_HOURS=48`
 
-Production deployments must supply reviewed values through their own
-configuration. These settings are not secrets, but lowering the cohort size
-below the API safety floor causes the endpoint to fail closed.
+`DF_PPI_MINIMUM_COHORT_SIZE=5` is the team's local privacy threshold. The
+current API only rejects a missing, zero, negative, or non-integer value. It
+does not enforce a separate minimum floor, so setting the value to `1` can
+allow a cohort of one to be published. Do not lower `5` without a privacy
+review.
+
+`DF_PPI_STALE_AFTER_HOURS=48` is the local maximum snapshot age. A snapshot
+older than this is returned as stale.
+
+The local Compose stack starts Redis, but it does not start a Sidekiq worker.
+To test PPI locally, first list the active unit IDs:
+
+```bash
+docker exec doubtfire-api bundle exec rails runner \
+  'Unit.active_units.order(:id).pluck(:id).each { |id| puts id }'
+```
+
+If this prints no unit IDs, complete **Step 2: Set up the database** above
+using `db:populate`, then run the command again.
+
+Choose a test unit ID and replace `123` in the following commands:
+
+```bash
+docker exec doubtfire-api bundle exec rails runner \
+  'Unit.find(123).update!(peer_progress_enabled: true)'
+
+docker exec doubtfire-api bundle exec rails runner \
+  'AggregatePeerProgressJob.new.perform(123)'
+
+docker exec doubtfire-api bundle exec rails runner \
+  'puts PeerProgressSnapshot.where(unit_id: 123).count'
+```
+
+A result above zero confirms that stored peer-progress snapshots were created.
+A result of zero means that the selected unit did not have suitable seeded
+projects, tasks, or target-grade cohorts.
+
+Production deployments must supply separately reviewed values through their
+own configuration. These values are not secrets.
