@@ -411,17 +411,28 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
 
 The local API container receives these non-secret development defaults:
 
-- `DF_PPI_MINIMUM_COHORT_SIZE=5`
+- `DF_PPI_MINIMUM_COHORT_SIZE=20`
 - `DF_PPI_STALE_AFTER_HOURS=48`
 
-`DF_PPI_MINIMUM_COHORT_SIZE=5` is the team's local privacy threshold. The
-current API only rejects a missing, zero, negative, or non-integer value. It
-does not enforce a separate minimum floor, so setting the value to `1` can
-allow a cohort of one to be published. Do not lower `5` without a privacy
-review.
+`DF_PPI_MINIMUM_COHORT_SIZE=20` matches the API's own floor.
+`PeerProgressApi::MINIMUM_SAFE_COHORT_SIZE` is 20 and `minimum_cohort_size!`
+returns 503 for anything below it, so a lower value disables the endpoint for
+enabled units rather than publishing a smaller cohort. You can raise this
+value, you cannot lower it. `positive_integer_env!` separately rejects a
+missing, zero, negative or non-integer value.
+
+The floor is 20 because the API quantises percentages into 10-point buckets,
+and a bucket only hides the underlying count while it is wider than one
+student's share of the cohort. Below 20 students the returned percentage
+inverts to an exact submitted count. Changing either number without the other
+breaks that, so `MINIMUM_SAFE_COHORT_SIZE` and `PERCENTAGE_BUCKET_SIZE` are
+asserted against each other in the API test suite.
+
+Verified against `ppi/student-progress-endpoint` @ 62ee2982.
 
 `DF_PPI_STALE_AFTER_HOURS=48` is the local maximum snapshot age. A snapshot
-older than this is returned as stale.
+older than this is returned as stale, and the response withholds the
+percentage entirely rather than returning an old one.
 
 The local Compose stack starts Redis, but it does not start a Sidekiq worker.
 To test PPI locally, first list the active unit IDs:
@@ -431,25 +442,37 @@ docker exec doubtfire-api bundle exec rails runner \
   'Unit.active_units.order(:id).pluck(:id).each { |id| puts id }'
 ```
 
-If this prints no unit IDs, complete **Step 2: Set up the database** above
-using `db:populate`, then run the command again.
+If this prints no unit IDs, complete step 2 of **Steps to run** above
+(*Set up the database*) using `db:populate`, then run the command again.
 
-Choose a test unit ID and replace `123` in the following commands:
+Choose a test unit ID and replace `123` in the following commands. Clear any
+existing rows and record the count first, or a second run reads as a pass even
+when the job raised:
 
 ```bash
 docker exec doubtfire-api bundle exec rails runner \
   'Unit.find(123).update!(peer_progress_enabled: true)'
 
 docker exec doubtfire-api bundle exec rails runner \
+  'PeerProgressSnapshot.where(unit_id: 123).delete_all; \
+   puts "BEFORE=#{PeerProgressSnapshot.where(unit_id: 123).count}"'
+
+docker exec doubtfire-api bundle exec rails runner \
   'AggregatePeerProgressJob.new.perform(123)'
 
 docker exec doubtfire-api bundle exec rails runner \
-  'puts PeerProgressSnapshot.where(unit_id: 123).count'
+  'puts "AFTER=#{PeerProgressSnapshot.where(unit_id: 123).count}"'
 ```
 
-A result above zero confirms that stored peer-progress snapshots were created.
-A result of zero means that the selected unit did not have suitable seeded
-projects, tasks, or target-grade cohorts.
+`BEFORE=0` followed by an `AFTER` above zero confirms that stored
+peer-progress snapshots were created by this run. An `AFTER` of zero means the
+selected unit did not have suitable seeded projects, tasks, or target-grade
+cohorts.
+
+Seeded units are small, so most target-grade cohorts will sit under the floor
+of 20 and the endpoint will read as unavailable even once snapshots exist.
+That is correct behaviour, not a broken setup. To see a number, either seed a
+larger unit or raise `DF_PPI_MINIMUM_COHORT_SIZE` locally, never lower it.
 
 Production deployments must supply separately reviewed values through their
 own configuration. These values are not secrets.

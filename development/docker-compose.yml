@@ -76,7 +76,7 @@ services:
 
       # Peer Progress Indicator local development defaults.
       # Production must set reviewed deployment values separately.
-      DF_PPI_MINIMUM_COHORT_SIZE: '5'
+      DF_PPI_MINIMUM_COHORT_SIZE: '20'
       DF_PPI_STALE_AFTER_HOURS: '48'
 
       DF_STUDENT_WORK_DIR: /student-work
