@@ -48,6 +48,11 @@ services:
       DF_AAF_AUTH_SIGNOUT_URL: https://sync-uat.deakin.edu.au/auth/logout
       DF_SECRET_KEY_AAF: v4~LMFLzzwRGZdju\5QBa@FiHIN9
 
+      # Peer Progress Indicator local development defaults.
+      # Production must set reviewed deployment values separately.
+      DF_PPI_MINIMUM_COHORT_SIZE: '20'
+      DF_PPI_STALE_AFTER_HOURS: '48'
+
       # Database settings - for development env
       DF_DEV_DB_ADAPTER: mysql2
       DF_DEV_DB_HOST: df-compose-dev-db
