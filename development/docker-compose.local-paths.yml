@@ -70,7 +70,7 @@ services:
     # (2) The repo's proxy.conf.json targets localhost:3000 (correct only for host-based
     #     ng serve); inside the container the api is the `doubtfire-api` service, so we
     #     overlay a docker-correct proxy config over it (the host repo file is untouched).
-    command: /bin/bash -c 'npm install; npm start'
+    command: /bin/bash -c 'npm install && npm start'
     volumes:
       - ../../doubtfire-web:/doubtfire-web
       - ./proxy.conf.docker.json:/doubtfire-web/proxy.conf.json:ro
