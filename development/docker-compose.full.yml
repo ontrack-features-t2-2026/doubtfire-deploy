@@ -1,4 +1,3 @@
-version: '3'
 services:
   dev-db:
     container_name: df-compose-dev-db
