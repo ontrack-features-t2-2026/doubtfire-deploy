@@ -141,6 +141,9 @@ API at the locked revision:
 - CPD privacy regression: 1 run, 41 assertions, 0 failures/errors
 - PPI endpoint: 38 runs, 2,599 assertions, 0 failures/errors
 - PPI service/job pack: 35 runs, 93 assertions, 0 failures/errors
+- PPI demo seed: two consecutive runs at the local floor of 21 produced two
+  enabled synthetic units, 22 students in every target-grade cohort, and all
+  28 seed-owned task/grade snapshots fresh per unit
 - notification mailers: 19 runs, 61 assertions, 0 failures/errors
 - broad notification pack at seed 43066: 182 runs, 1,003 assertions,
   0 failures/errors
@@ -197,9 +200,6 @@ not hidden merge failures:
   gitlinks. Web PR #82 depends on the web #72 → #80 chain.
 - Future-dated, rollover, copied, and import-created task notifications remain
   outside the first EN implementation.
-- Seeded PPI sample cohorts have only eight students per grade and PPI defaults
-  to disabled per unit. An unsuppressed percentage demo needs PPI enabled and a
-  target-grade cohort of at least 21.
 - The inherited web dependency graph still reports 14 audit findings: three
   low, five moderate, five high, and one critical. This integration did not
   change or claim to resolve them.
@@ -209,3 +209,11 @@ not hidden merge failures:
 Production PPI values still require deployment review. Local development uses
 the API-enforced privacy floor `DF_PPI_MINIMUM_COHORT_SIZE=21` and a 48-hour
 staleness window.
+
+The companion API branch `fix/ppi-demo-ready-cohorts-pr-20260824` makes only the
+synthetic `PPI1001` and `PPI1002` sample units demo-ready. It keeps the floor at
+21 and, rather than changing it, derives a sufficient class size from the
+configured threshold. With the local setting this creates 22 students in every
+target-grade cohort on a fresh or legacy sample database, changes the PPI
+setting only on those sample units, and refreshes and validates their aggregate
+snapshots before the seed task returns.

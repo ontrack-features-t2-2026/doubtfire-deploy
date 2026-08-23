@@ -483,8 +483,32 @@ must not be merged independently.
 older than this is returned as stale, and the response withholds the
 percentage entirely rather than returning an old one.
 
-The combined local stack starts Redis and the Sidekiq worker. To test PPI deterministically,
-first list the active unit IDs:
+The combined local stack starts Redis and the Sidekiq worker. To create the
+privacy-safe PPI demo data deterministically, run the dedicated sample task in
+the same `ppi-live` project:
+
+```bash
+docker compose -p ppi-live \
+  -f docker-compose.yml \
+  -f docker-compose.local-paths.yml \
+  -f docker-compose.ppi-live.yml \
+  run --rm doubtfire-api bash -c "bundle exec rake db:ppi_sample_data"
+```
+
+This task creates or repairs the synthetic `PPI1001` and `PPI1002` units. It
+derives the students per class from `DF_PPI_MINIMUM_COHORT_SIZE`, rounding up so
+the two-class exact-grade cohorts meet or exceed the configured threshold. With
+the local setting, each class has 11 students per grade and each target-grade
+cohort on a fresh or legacy sample database has 22 students: one above the
+enforced floor of 21. The task changes the PPI setting only for those synthetic
+units, repairs the current seed-owned user roles, unit and task definitions,
+tutorial capacity and enrolments, and writes and validates fresh snapshots
+before it returns. It is safe to run again against a database previously
+populated by this task; surplus students from an earlier higher threshold are
+retained, so later cohorts can be above the configured minimum.
+
+Verify the feature flag, exact-grade cohort sizes, and the 28 seed-owned fresh
+task/grade snapshots per unit:
 
 ```bash
 docker compose -p ppi-live \
@@ -492,65 +516,46 @@ docker compose -p ppi-live \
   -f docker-compose.local-paths.yml \
   -f docker-compose.ppi-live.yml \
   exec doubtfire-api bundle exec rails runner \
-  'Unit.active_units.order(:id).pluck(:id).each { |id| puts id }'
+  'minimum = Integer(ENV.fetch("DF_PPI_MINIMUM_COHORT_SIZE"), 10); \
+   stale_after_hours = Integer(ENV.fetch("DF_PPI_STALE_AFTER_HOURS"), 10); \
+   raise "Invalid PPI configuration" unless minimum >= PeerProgressApi::MINIMUM_SAFE_COHORT_SIZE && stale_after_hours.positive?; \
+   fresh_after = stale_after_hours.hours.ago; \
+   grades = [0, 1, 2, 3]; codes = %w[PPI1001 PPI1002]; \
+   abbreviations = (1..7).map { |number| "T#{number}" }; \
+   units = codes.map do |code| \
+     matches = Unit.where(code: code).to_a; \
+     raise "Expected exactly one #{code} unit" unless matches.one?; \
+     matches.first; \
+   end; \
+   units.each do |unit| \
+     cohorts = unit.active_projects.group(:target_grade).count; \
+     task_defs = unit.task_definitions.where(abbreviation: abbreviations); \
+     unit_number = unit.code.delete_prefix("PPI100"); \
+     projects = unit.active_projects.joins(:user).where("users.username LIKE ?", "ppi_u#{unit_number}c%"); \
+     tasks = Task.where(project_id: projects.select(:id), task_definition_id: task_defs.select(:id)).includes(:task_definition, :project); \
+     demo = unit.peer_progress_snapshots.where(task_definition_id: task_defs.select(:id), target_grade: grades); \
+     latest_changes = grades.index_with { |grade| unit.active_projects.where(target_grade: grade).maximum(:target_grade_changed_at) }; \
+     valid = unit.active? && unit.peer_progress_enabled? && !unit.allow_flexible_dates? && \
+       task_defs.count == 7 && task_defs.all? { |definition| definition.target_grade.zero? } && \
+       projects.count >= 2 * grades.length * minimum.fdiv(2).ceil && \
+       projects.all? { |project| project.enrolled? && project.user.role_id == Role.student_id && grades.include?(project.target_grade) } && \
+       tasks.count == projects.count * task_defs.count && \
+       tasks.all? { |task| task.local_start_date.present? && task.local_start_date <= Time.zone.now && task.task_definition.target_grade <= task.project.target_grade } && \
+       demo.count == 28 && \
+       grades.all? { |grade| cohorts.fetch(grade, 0) >= minimum } && \
+       demo.all? { |snapshot| !snapshot.submitted_percentage.nil? && snapshot.cohort_size == cohorts.fetch(snapshot.target_grade) && \
+         snapshot.calculated_at >= fresh_after && snapshot.calculated_at >= latest_changes.fetch(snapshot.target_grade) }; \
+     raise "#{unit.code} is not PPI demo-ready" unless valid; \
+     puts "#{unit.code}: enabled=true cohorts=#{cohorts.slice(*grades).inspect} fresh_demo_snapshots=#{demo.count}"; \
+   end'
 ```
 
-If this prints no unit IDs, populate the database in the same `ppi-live` project, then run
-the command again:
-
-```bash
-docker compose -p ppi-live \
-  -f docker-compose.yml \
-  -f docker-compose.local-paths.yml \
-  -f docker-compose.ppi-live.yml \
-  run --rm doubtfire-api bash -c "bundle exec rake db:populate"
-```
-
-Choose a test unit ID and replace `123` in the following commands. Clear any
-existing rows and record the count first, or a second run reads as a pass even
-when the job raised:
-
-```bash
-docker compose -p ppi-live \
-  -f docker-compose.yml \
-  -f docker-compose.local-paths.yml \
-  -f docker-compose.ppi-live.yml \
-  exec doubtfire-api bundle exec rails runner \
-  'Unit.find(123).update!(peer_progress_enabled: true)'
-
-docker compose -p ppi-live \
-  -f docker-compose.yml \
-  -f docker-compose.local-paths.yml \
-  -f docker-compose.ppi-live.yml \
-  exec doubtfire-api bundle exec rails runner \
-  'PeerProgressSnapshot.where(unit_id: 123).delete_all; \
-   puts "BEFORE=#{PeerProgressSnapshot.where(unit_id: 123).count}"'
-
-docker compose -p ppi-live \
-  -f docker-compose.yml \
-  -f docker-compose.local-paths.yml \
-  -f docker-compose.ppi-live.yml \
-  exec doubtfire-api bundle exec rails runner \
-  'AggregatePeerProgressJob.new.perform(123)'
-
-docker compose -p ppi-live \
-  -f docker-compose.yml \
-  -f docker-compose.local-paths.yml \
-  -f docker-compose.ppi-live.yml \
-  exec doubtfire-api bundle exec rails runner \
-  'puts "AFTER=#{PeerProgressSnapshot.where(unit_id: 123).count}"'
-```
-
-`BEFORE=0` followed by an `AFTER` above zero confirms that stored
-peer-progress snapshots were created by this run. An `AFTER` of zero means the
-selected unit did not have suitable seeded projects, tasks, or target-grade
-cohorts.
-
-Seeded units are small, so most target-grade cohorts will sit under the floor
-of 21 and the endpoint will read as unavailable even once snapshots exist.
-That is correct behaviour, not a broken setup. To see a number, seed a larger
-target-grade cohort. Never lower the configured floor; raising it hides more
-small cohorts rather than making them visible.
+At the checked-in local setting on a fresh or legacy sample database, both lines
+report `enabled=true`, cohorts `{0=>22, 1=>22, 2=>22, 3=>22}`, and
+`fresh_demo_snapshots=28`. Cohorts can be higher after a run with a higher valid
+threshold because the seed never removes students. In every case it adds enough
+students per class to meet or exceed the configured threshold. Never lower the
+configured floor to make a demo visible.
 
 Production deployments must supply separately reviewed values through their
 own configuration. These values are not secrets.
