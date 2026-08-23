@@ -24,7 +24,7 @@ http() { curl -s -o /dev/null -w '%{http_code}' "$1"; }
 
 echo
 echo "1. Containers"
-for c in doubtfire-api doubtfire-web df-compose-dev-db df-compose-mailpit; do
+for c in doubtfire-api doubtfire-sidekiq doubtfire-web df-compose-dev-db df-compose-mailpit; do
   state=$(docker inspect -f '{{.State.Running}}' "$c" 2>/dev/null || echo missing)
   check "$c is running" "true" "$state"
 done

@@ -7,6 +7,9 @@ version: '3'
 # need overseer.
 services:
   doubtfire-api:
+    # Use environment-specific image tags so another OnTrack worktree cannot
+    # silently replace the image while this demo is running.
+    image: ontrack-notifications-api:20260823
     build: ../../doubtfire-api
     volumes:
       - ../../doubtfire-api/:/doubtfire
@@ -23,6 +26,7 @@ services:
       DF_TEST_DB_PASSWORD: pwd
 
   doubtfire-sidekiq:
+    image: ontrack-notifications-api:20260823
     build: ../../doubtfire-api
     volumes:
       - ../../doubtfire-api/:/doubtfire
@@ -30,6 +34,7 @@ services:
       - ../data/student-work:/student-work
 
   doubtfire-web:
+    image: ontrack-notifications-web:20260823
     build: ../../doubtfire-web
     # (1) Base compose runs `npm run start-compose`, but 11.0.x renamed it to `start`.
     # (2) The repo's proxy.conf.json targets localhost:3000 (correct only for host-based
