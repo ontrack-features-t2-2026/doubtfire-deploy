@@ -26,14 +26,13 @@ described in `RUNNING-LOCALLY.md`.
 
 ## Source snapshot
 
-The final GitHub audit was refreshed at `2026-08-23T22:35:34Z` after
-publication of the PPI lint prerequisite. It reported 21 open
-API PRs, 27 open web PRs, and nine open deploy PRs. The original in-scope
-inventory below was
-unchanged; every exact PR
-head remained an ancestor of its local integration branch, and every named
-feature branch still matched the recorded SHA. No relevant PR was new,
-rebased, stale, or missing at that checkpoint.
+The final GitHub audit was refreshed at `2026-08-23T22:41:19Z` after
+publication of all focused follow-ups. It reported 21 open API PRs, 27 open
+web PRs, and nine open deploy PRs. The original in-scope inventory below was
+unchanged; every exact original PR head remained an ancestor of its local
+integration branch, and every named feature branch still matched the recorded
+SHA. Current repair heads, bases, draft states, and check rollups are recorded
+separately in `ALL-FEATURES-PR-FOLLOWUPS.md`.
 
 Base `11.0.x` revisions:
 
@@ -98,8 +97,8 @@ Reviewer-ready API repairs extracted from the locked revision:
 Reviewer-ready web repairs extracted from the locked revision or its demo
 follow-up:
 
-- `fix/cpd-due-date-warning-integration-20260824` at `ddf31f970`
-- `fix/cpd-deadline-chip-alignment-pr-20260824` at `65f913609`
+- `fix/cpd-due-date-warning-integration-20260824` at `680f15b1b`
+- `fix/cpd-deadline-chip-alignment-pr-20260824` at `ae16f0880`
 - `fix/cpd-completed-task-order-pr-20260824` at `986601624`
 - `fix/cpd-recommended-ordering-20260824` at `cbe315b2a`
 - `fix/ppi-live-task-adapter-20260824` at `641ff270a`
@@ -192,8 +191,10 @@ not hidden merge failures:
 - The task-level PPI widget uses the live authorised API. The unit-summary and
   burndown views remain explicit demo/mock views because no corresponding
   backend aggregate contracts exist.
-- The CPD Recommended ordering mode still uses its documented placeholder
-  recommendation logic.
+- The locked CPD Recommended ordering mode still uses its documented
+  placeholder recommendation logic. API PR #61 and web PR #82 are the
+  reviewable follow-up that completes it; they are not yet in the locked
+  gitlinks. Web PR #82 depends on the web #72 → #80 chain.
 - Future-dated, rollover, copied, and import-created task notifications remain
   outside the first EN implementation.
 - Seeded PPI sample cohorts have only eight students per grade and PPI defaults
