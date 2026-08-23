@@ -40,6 +40,7 @@ The setups to configure these components include:
       - Adjust **student-work** to match app server.
     - Add monitoring as needed to ensure ongoing operation
 4. Adjust **.env.production**:
+   - **TZ** - set the deployment's IANA time zone. Scheduled notification jobs use this clock; for example, `Australia/Melbourne`.
    - **DF_PRODUCTION_DB_*** settings - adjust database settings for adapter type, host name, database name, and password. The provided setting work with the database setup in the compose file. The password should be updates as a minimum.
    - **DF_SECRET_KEY_DEVISE** - contains the key used to encrypt the [Devise](https://github.com/heartcombo/devise) user data in the database. Keys can be generated with `bundle exec rake secret` run in the *apiserver* container.
    - **DF_SECRET_KEY_BASE** and **DF_SECRET_KEY_ATTR** - these are historic keys used to encrypt data in the database. Generate as with the Devise key.
@@ -48,6 +49,7 @@ The setups to configure these components include:
    - **DF_INSTITUTION_PRODUCT_NAME** - change to the name of the deployed product
    - **DF_INSTITUTION_SETTINGS_RB** - can be used when institution specific integrations for synchronising student enrolments.
    - **DF_INSTITUTION_EMAIL_DOMAIN** - the domain name associated with student emails.
+   - **DF_INSTITUTION_EMAIL_SENDER** - set the event-notification From address. It must be authorised by the configured SMTP relay and should align with the deployment's SPF, DKIM, and DMARC policy.
    - **DF_INSTITUTION_NAME** - change to the the name of the institution
    - **DF_AUTH_METHOD** - change to the intended authentication method. Do not use database. The authentication source needs to exist externally, or be setup within the system.
      - AAF authentication uses [rapid connect](https://rapid.aaf.edu.au). This is configured with the following settings:
@@ -83,6 +85,7 @@ The setups to configure these components include:
        - DF_SMTP_USERNAME
        - DF_SMTP_PASSWORD
        - DF_SMTP_AUTHENTICATION
+   - Generate a production-only Web Push VAPID keypair and set **DOUBTFIRE_VAPID_PUBLIC_KEY**, **DOUBTFIRE_VAPID_PRIVATE_KEY**, and **DOUBTFIRE_VAPID_SUBJECT**. Do not reuse development keys. The public site must use HTTPS for PWA and Web Push operation.
 5. Adjust **shared-files/proxy-nginx.conf**. This file configures the proxy nginx container that routes traffic to the webserver and apiserver containers. It needs to be update with the host URLs. The provided file uses localhost as the server URL.
 6. Configure email settings:
    - Edit **shared-files/aliases** to map the root user email to the support email address that the application will use.
@@ -99,4 +102,3 @@ The setups to configure these components include:
       ```
 
     When successful you should be able to login as the admin user.
-

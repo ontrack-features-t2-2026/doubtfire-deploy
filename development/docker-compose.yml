@@ -1,4 +1,3 @@
-version: '3'
 services:
   dev-db:
     container_name: df-compose-dev-db
@@ -53,9 +52,11 @@ services:
       - ../data/student-work:/student-work
     depends_on:
       - dev-db
+      - redis-sidekiq
       - mailpit
-    environment:
+    environment: &doubtfire-api-environment
       RAILS_ENV: 'development'
+      TZ: Australia/Melbourne
 
       # Mail catcher. Setting DF_SMTP_ADDRESS is what switches the api from
       # writing mail to a file to sending it to mailpit. Unset it and the api
@@ -80,8 +81,11 @@ services:
       DF_PPI_STALE_AFTER_HOURS: '48'
 
       DF_STUDENT_WORK_DIR: /student-work
-      DF_INSTITUTION_HOST: http://localhost:3000
+      # User-facing links in notification emails must open the web app, not the
+      # Rails API port.
+      DF_INSTITUTION_HOST: http://localhost:4200
       DF_INSTITUTION_PRODUCT_NAME: OnTrack
+      DF_INSTITUTION_EMAIL_SENDER: noreply@doubtfire.local
 
       DF_SECRET_KEY_BASE: test-secret-key-test-secret-key!
       DF_SECRET_KEY_ATTR: test-secret-key-test-secret-key!
@@ -129,6 +133,23 @@ services:
 
       # Redis
       DF_REDIS_SIDEKIQ_URL: redis://df-compose-redis-sidekiq:6379/0
+
+  doubtfire-sidekiq:
+    container_name: doubtfire-sidekiq
+    image: lmsdoubtfire/doubtfire-api:8.0.x-dev
+    build: ../doubtfire-api
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+    volumes:
+      - ../doubtfire-api/:/doubtfire
+      - ../data/tmp:/doubtfire/tmp
+      - ../data/student-work:/student-work
+    depends_on:
+      - dev-db
+      - redis-sidekiq
+      - mailpit
+    environment:
+      <<: *doubtfire-api-environment
+      DF_LOG_TO_STDOUT: '1'
 
   doubtfire-web:
     container_name: doubtfire-web
