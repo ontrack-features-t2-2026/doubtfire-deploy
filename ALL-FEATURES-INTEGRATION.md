@@ -26,9 +26,10 @@ described in `RUNNING-LOCALLY.md`.
 
 ## Source snapshot
 
-The final GitHub audit was refreshed at `2026-08-23T22:14:51Z`. It reported 19
-open API PRs, 26 open web PRs, and seven open deploy PRs after publication of
-the new draft review branches. The original in-scope inventory below was
+The final GitHub audit was refreshed at `2026-08-23T22:27:37Z` after
+publication of the recommendation and final deploy drafts. It reported 20 open
+API PRs, 27 open web PRs, and nine open deploy PRs. The original in-scope
+inventory below was
 unchanged; every exact PR
 head remained an ancestor of its local integration branch, and every named
 feature branch still matched the recorded SHA. No relevant PR was new,
@@ -91,13 +92,15 @@ Reviewer-ready API repairs extracted from the locked revision:
 - `test/notifications-isolation-pr-20260824` at `88002d41`
 - `test/notification-submission-deadline-isolation-pr-20260824` at `2f3df4f5`
 - `test/task-upload-isolation-pr-20260824` at `44464bad`
+- `fix/cpd-recommended-ordering-20260824` at `9e7fa49dd`
 
 Reviewer-ready web repairs extracted from the locked revision or its demo
 follow-up:
 
 - `fix/cpd-due-date-warning-integration-20260824` at `ddf31f970`
 - `fix/cpd-deadline-chip-alignment-pr-20260824` at `65f913609`
-- `fix/cpd-completed-task-order-pr-20260824` at `ab022044e`
+- `fix/cpd-completed-task-order-pr-20260824` at `986601624`
+- `fix/cpd-recommended-ordering-20260824` at `cbe315b2a`
 - `fix/ppi-live-task-adapter-20260824` at `641ff270a`
 - `fix/ppi-demo-peer-median-current-date-20260824` at `fdddd2202`
 - `fix/web-node-22-toolchain-pr-20260824` at `27f1012bf`

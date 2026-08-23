@@ -2,7 +2,7 @@
 
 This is the coordination record for turning the validated CPD, PPI, Email
 Notifications, and Mobile Notifications demo into reviewable pull requests.
-It was refreshed from GitHub at `2026-08-23T22:14:51Z`.
+It was refreshed from GitHub at `2026-08-23T22:27:37Z`.
 
 The large `integration/11.0.x-all-features-20260824` branches are validation
 inputs, not review branches. API draft PR #60 and web draft PR #81 publish
@@ -42,6 +42,8 @@ make the branch part of this integration automatically.
 
 | PR | Head → base | Role in this stack |
 | --- | --- | --- |
+| [#17](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/17) | `chore/deploy-all-features-integration-lock-pr-20260824` → `docs/deploy-all-features-runbook-pr-20260824` | Clean draft integration lock and follow-up index. |
+| [#16](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/16) | `docs/deploy-all-features-runbook-pr-20260824` → `integration/deploy-all-features-pr-ready-20260824` | Clean draft combined-demo runbook. |
 | [#15](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/15) | `integration/deploy-all-features-pr-ready-20260824` → `fix/deploy-combined-demo-consistency-20260824` | Clean draft coordination merge for downstream documentation. |
 | [#14](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/14) | `fix/deploy-combined-demo-consistency-20260824` → `integration/deploy-all-features-foundation-20260824` | Clean draft for the cross-feature Compose repair. |
 | [#13](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/13) | `fix/deploy-compose-schema-cleanup-pr-20260824` → `integration/deploy-all-features-foundation-20260824` | Clean draft for the remaining schema cleanup. |
@@ -80,6 +82,7 @@ PRs report `BLOCKED`. Among the out-of-scope PRs, #52, #64, and #68 report `CLEA
 
 | Branch and local head | PR base | Dependency and action |
 | --- | --- | --- |
+| [#61](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/61) — `fix/cpd-recommended-ordering-20260824` at `9e7fa49dd` | `feature/cross-unit` | Draft personalised recommendation-score contract required by web PR #82. |
 | [#59](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/59) — `fix/cpd-task-definition-privacy-pr-20260824` at `8b2250b94` | `feature/cross-unit` | Draft security/privacy fix to merge before CPD reaches `11.0.x`. |
 | [#55](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/55) — `fix/ppi-quantisation-privacy-pr-20260824` at `c29b33cb` | `feature/peer-progress-indicator` | Coordinate with deploy PR #11; deployment value 21 must be in place before this API floor lands. |
 | [#56](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/56) — `fix/notifications-group-email-link-pr-20260824` at `b017f615f` | `feature/notifications` | Draft notification-link repair. |
@@ -103,7 +106,8 @@ Do not open an empty PR; extract it only after those histories share a base.
 | --- | --- | --- |
 | [#74](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/74) — `fix/cpd-due-date-warning-integration-20260824` at `ddf31f970` | `feature/cross-unit` | Draft prerequisite reconstruction of the dashboard due-date warning feature. It deliberately excludes unrelated unit-task-editor churn. |
 | [#75](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/75) — `fix/cpd-deadline-chip-alignment-pr-20260824` at `65f913609` | `fix/cpd-due-date-warning-integration-20260824` | Requested icon/text centring fix. Keep it stacked; retarget to `feature/cross-unit` after #74 merges. Currently `UNSTABLE`. |
-| [#80](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/80) — `fix/cpd-completed-task-order-pr-20260824` at `ab022044e` | `feature/cross-unit` | Draft independent ordering fix that keeps completed tasks below active work. |
+| [#80](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/80) — `fix/cpd-completed-task-order-pr-20260824` at `986601624` | `docs/cpd-sizing-investigation` | Clean draft ordering fix stacked on web PR #72. |
+| [#82](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/82) — `fix/cpd-recommended-ordering-20260824` at `cbe315b2a` | `fix/cpd-completed-task-order-pr-20260824` | Draft personalised ordering UI stacked on #80; requires API PR #61. Currently `UNSTABLE`. |
 | [#77](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/77) — `fix/ppi-live-task-adapter-20260824` at `641ff270a` | `feature/peer-progress-indicator` | Draft connection from task widget to the authorised live API. |
 | [#79](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/79) — `fix/ppi-demo-peer-median-current-date-20260824` at `fdddd2202` | `feature/peer-progress-indicator` | Draft fix that stops the median at today instead of stretching it to 100%. |
 | [#78](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/78) — `fix/web-node-22-toolchain-pr-20260824` at `27f1012bf` | `11.0.x` | Draft supported-Node toolchain alignment. |
@@ -112,6 +116,9 @@ Do not open an empty PR; extract it only after those histories share a base.
 [Web draft #81](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/81)
 publishes the combined integration head. Keep it draft and use it only for
 coordination and final checks; the small PRs above are the review path.
+
+The CPD recommendation review chain is web PR #72 → web PR #80 → web PR #82.
+Web PR #82 also requires the API contract in API PR #61.
 
 ## New deploy PR stack
 
@@ -124,8 +131,8 @@ coordination and final checks; the small PRs above are the review path.
 | [#13](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/13) — `fix/deploy-compose-schema-cleanup-pr-20260824` at `7c256c4` | `integration/deploy-all-features-foundation-20260824` | Clean removal of the remaining obsolete Compose schema declarations. |
 | `fix/deploy-ppi-privacy-floor-20260824` at `9bb524f` | `11.0.x` | Clean reconstruction of the original local fix, now superseded by the more complete deploy PR #11. Do not open a duplicate PR. Rebase downstream coordination branches after #11 merges. |
 | [#15](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/15) — `integration/deploy-all-features-pr-ready-20260824` at `aae51de` | `fix/deploy-combined-demo-consistency-20260824` | Clean draft coordination merge that adds the schema and PPI-floor histories for downstream documentation. Rebase after deploy PR #11. |
-| `docs/deploy-all-features-runbook-pr-20260824` at `b43b831` | `integration/deploy-all-features-pr-ready-20260824` | One-commit combined-demo runbook update. Retarget to `11.0.x` after the deploy prerequisites merge. |
-| `chore/deploy-all-features-integration-lock-pr-20260824` | `docs/deploy-all-features-runbook-pr-20260824` | Locks validated API/web revisions and carries this index. Keep draft until both referenced component commits are published. |
+| [#16](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/16) — `docs/deploy-all-features-runbook-pr-20260824` at `b43b831` | `integration/deploy-all-features-pr-ready-20260824` | Clean one-commit combined-demo runbook draft. |
+| [#17](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/17) — `chore/deploy-all-features-integration-lock-pr-20260824` | `docs/deploy-all-features-runbook-pr-20260824` | Clean draft that locks the published API/web revisions and carries this index. |
 
 ## Coordination-only integration heads
 
@@ -149,10 +156,6 @@ one of the PRs above:
   worker startup hardening, outside the validated all-features stack.
 - `fix/npm-audit-20260824`: inherited web dependency findings need a dedicated
   dependency-upgrade plan and regression pass.
-- `fix/cpd-recommended-ordering-20260824`: active local web extraction, pending
-  final lint, commit, and review. It stacks on completed-task ordering PR #80
-  and requires the companion API recommendation branch; append both final
-  heads and PR numbers here once published.
 - Unit-summary and burndown PPI remain explicitly labelled demo data until an
   authorised backend aggregate contract is designed and reviewed.
 
@@ -171,6 +174,10 @@ one of the PRs above:
   lint, and formatting passed.
 - Completed-task ordering: all 28 focused dashboard tests, application
   type-check, focused lint, formatting, and whitespace checks passed.
+- Personalised recommendation ordering: all 33 focused tests, application
+  type-check, targeted lint, formatting, and whitespace checks passed. Full
+  lint was stopped after showing only 25 inherited warnings addressed by its
+  prerequisite PR #72.
 - Deploy stack: the base, local-path, PPI-live, full-development, and
   production Compose configurations rendered successfully. Every YAML file
   parsed, every shell script passed syntax checking, both Node helper modules
@@ -184,6 +191,7 @@ one of the PRs above:
 - [ ] Every PR has the intended base and contains no merge-only integration history.
 - [ ] API PPI PR #55 and deploy PPI-values PR #11 cross-link each other.
 - [ ] The deadline-chip PR links its due-date-warning prerequisite.
+- [ ] Web PR #82 links web prerequisites #72/#80 and required API PR #61.
 - [ ] Existing feature PRs have required reviews and green checks.
 - [ ] Downstream deploy drafts are rebased or retargeted after prerequisites merge.
 - [ ] API and web lock SHAs are reachable from published branches.
