@@ -145,8 +145,10 @@ one of the PRs above:
   worker startup hardening, outside the validated all-features stack.
 - `fix/npm-audit-20260824`: inherited web dependency findings need a dedicated
   dependency-upgrade plan and regression pass.
-- `fix/cpd-recommended-ordering-20260824`: the documented recommendation
-  placeholder needs a product decision before implementation.
+- `fix/cpd-recommended-ordering-20260824`: active local web extraction, pending
+  final lint, commit, and review. It stacks on completed-task ordering PR #80
+  and requires the companion API recommendation branch; append both final
+  heads and PR numbers here once published.
 - Unit-summary and burndown PPI remain explicitly labelled demo data until an
   authorised backend aggregate contract is designed and reviewed.
 
