@@ -2,7 +2,7 @@
 
 This is the coordination record for turning the validated CPD, PPI, Email
 Notifications, and Mobile Notifications demo into reviewable pull requests.
-It was refreshed from GitHub at `2026-08-23T22:27:37Z`.
+It was refreshed from GitHub at `2026-08-23T22:35:34Z`.
 
 The large `integration/11.0.x-all-features-20260824` branches are validation
 inputs, not review branches. API draft PR #60 and web draft PR #81 publish
@@ -15,9 +15,10 @@ language-notice, and task-comment work out of this stack.
 
 1. Finish the existing feature PRs into their current shared feature branches.
 2. Review each new API and web repair against its natural feature base.
-3. Coordinate the API and deploy PPI privacy-floor changes. The deploy value
-   can land first; do not land the API floor of 21 while deployment still
-   supplies 20, because the endpoint will fail closed with HTTP 503.
+3. Merge API PPI lint prerequisite #62 before API privacy-floor PR #55.
+   Coordinate #55 with deploy PPI-values PR #11: the deploy value can land
+   first, but do not deploy the API floor of 21 while deployment still supplies
+   20, because the endpoint will fail closed with HTTP 503.
 4. Merge the independent `11.0.x` CI, test-isolation, Compose, and deployment
    fixes.
 5. Review the combined deploy branches as a stack. Keep downstream PRs in
@@ -84,7 +85,8 @@ PRs report `BLOCKED`. Among the out-of-scope PRs, #52, #64, and #68 report `CLEA
 | --- | --- | --- |
 | [#61](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/61) — `fix/cpd-recommended-ordering-20260824` at `9e7fa49dd` | `feature/cross-unit` | Draft personalised recommendation-score contract required by web PR #82. |
 | [#59](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/59) — `fix/cpd-task-definition-privacy-pr-20260824` at `8b2250b94` | `feature/cross-unit` | Draft security/privacy fix to merge before CPD reaches `11.0.x`. |
-| [#55](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/55) — `fix/ppi-quantisation-privacy-pr-20260824` at `c29b33cb` | `feature/peer-progress-indicator` | Coordinate with deploy PR #11; deployment value 21 must be in place before this API floor lands. |
+| [#62](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/62) — `style/ppi-sample-data-lint-pr-20260824` at `87bbcb0ca` | `feature/peer-progress-indicator` | Draft focused sample-data lint cleanup and required review prerequisite for #55. |
+| [#55](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/55) — `fix/ppi-quantisation-privacy-pr-20260824` at `be30dfff6` | `style/ppi-sample-data-lint-pr-20260824` | Stacked on #62. Coordinate with deploy PR #11; deployment value 21 must be in place before this API floor is deployed. Currently `UNSTABLE`. |
 | [#56](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/56) — `fix/notifications-group-email-link-pr-20260824` at `b017f615f` | `feature/notifications` | Draft notification-link repair. |
 | [#54](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/54) — `fix/ci-deployment-metadata-id-pr-20260824` at `4c6b373b` | `11.0.x` | Draft independent deployment-workflow fix. |
 | [#57](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/57) — `test/notifications-isolation-pr-20260824` at `88002d41` | `feature/notifications` | Draft test fix that authenticates push-settings requests and removes shared authentication state. |
@@ -161,7 +163,9 @@ one of the PRs above:
 
 ## Validation recorded for the extracted branches
 
-- All seven API repair branches are clean, pass whitespace checks, and pass
+- API PPI sample-data lint prerequisite #62: Ruby syntax, changed-file RuboCop,
+  the full combined 344-file RuboCop run, and whitespace checks passed.
+- The seven earlier API repair branches are clean, pass whitespace checks, and pass
   exact-file RuboCop. The upload test file retains the same 255 inherited
   offences before and after its isolation-only diff. Direct
   natural-base test runs are currently blocked because those older
@@ -189,6 +193,7 @@ one of the PRs above:
 ## Close-out checklist
 
 - [ ] Every PR has the intended base and contains no merge-only integration history.
+- [ ] API PPI lint PR #62 is reviewed before stacked privacy PR #55.
 - [ ] API PPI PR #55 and deploy PPI-values PR #11 cross-link each other.
 - [ ] The deadline-chip PR links its due-date-warning prerequisite.
 - [ ] Web PR #82 links web prerequisites #72/#80 and required API PR #61.

@@ -26,8 +26,8 @@ described in `RUNNING-LOCALLY.md`.
 
 ## Source snapshot
 
-The final GitHub audit was refreshed at `2026-08-23T22:27:37Z` after
-publication of the recommendation and final deploy drafts. It reported 20 open
+The final GitHub audit was refreshed at `2026-08-23T22:35:34Z` after
+publication of the PPI lint prerequisite. It reported 21 open
 API PRs, 27 open web PRs, and nine open deploy PRs. The original in-scope
 inventory below was
 unchanged; every exact PR
@@ -86,7 +86,8 @@ is outside application CPD/PPI/EN/MN behaviour, and was not security-approved.
 Reviewer-ready API repairs extracted from the locked revision:
 
 - `fix/cpd-task-definition-privacy-pr-20260824` at `8b2250b94`
-- `fix/ppi-quantisation-privacy-pr-20260824` at `c29b33cb`
+- `style/ppi-sample-data-lint-pr-20260824` at `87bbcb0ca`
+- `fix/ppi-quantisation-privacy-pr-20260824` at `be30dfff6`
 - `fix/notifications-group-email-link-pr-20260824` at `b017f615f`
 - `fix/ci-deployment-metadata-id-pr-20260824` at `4c6b373b`
 - `test/notifications-isolation-pr-20260824` at `88002d41`
