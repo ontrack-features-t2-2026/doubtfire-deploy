@@ -26,8 +26,8 @@ described in `RUNNING-LOCALLY.md`.
 
 ## Source snapshot
 
-The final GitHub audit was refreshed at `2026-08-23T22:02:50Z`. It reported 19
-open API PRs, 26 open web PRs, and three open deploy PRs after publication of
+The final GitHub audit was refreshed at `2026-08-23T22:14:51Z`. It reported 19
+open API PRs, 26 open web PRs, and seven open deploy PRs after publication of
 the new draft review branches. The original in-scope inventory below was
 unchanged; every exact PR
 head remained an ancestor of its local integration branch, and every named

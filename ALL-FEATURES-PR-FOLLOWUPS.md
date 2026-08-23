@@ -2,7 +2,7 @@
 
 This is the coordination record for turning the validated CPD, PPI, Email
 Notifications, and Mobile Notifications demo into reviewable pull requests.
-It was refreshed from GitHub at `2026-08-23T22:02:50Z`.
+It was refreshed from GitHub at `2026-08-23T22:14:51Z`.
 
 The large `integration/11.0.x-all-features-20260824` branches are validation
 inputs, not review branches. API draft PR #60 and web draft PR #81 publish
@@ -42,6 +42,10 @@ make the branch part of this integration automatically.
 
 | PR | Head → base | Role in this stack |
 | --- | --- | --- |
+| [#15](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/15) | `integration/deploy-all-features-pr-ready-20260824` → `fix/deploy-combined-demo-consistency-20260824` | Clean draft coordination merge for downstream documentation. |
+| [#14](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/14) | `fix/deploy-combined-demo-consistency-20260824` → `integration/deploy-all-features-foundation-20260824` | Clean draft for the cross-feature Compose repair. |
+| [#13](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/13) | `fix/deploy-compose-schema-cleanup-pr-20260824` → `integration/deploy-all-features-foundation-20260824` | Clean draft for the remaining schema cleanup. |
+| [#12](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/12) | `integration/deploy-all-features-foundation-20260824` → `11.0.x` | Draft notification/PPI foundation; currently `BLOCKED`. |
 | [#11](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/11) | `config/ppi-production-values-20260824` → `11.0.x` | Preferred deploy half of the PPI floor rollout; sets development and production values to 21/48. Currently `BLOCKED`. |
 | [#10](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/10) | `chore/sidekiq-worker` → `11.0.x` | Required by the notifications environment; currently `BLOCKED`. |
 | [#9](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/9) | `bugfix/harsh-notifications` → `11.0.x` | Teams workflow only; keep separate from the product-feature stack. |
@@ -115,11 +119,11 @@ coordination and final checks; the small PRs above are the review path.
 | --- | --- | --- |
 | `integration/notifications-environment-20260823` at `41f3f66` | `11.0.x` | Depends on deploy PR #10 and the notification feature branches. Rebase after #10 merges so its diff contains only notification-environment work. |
 | `integration/peer-progress-indicator-live-20260823` at `ecf4e8d` | `11.0.x` | PPI live-demo overlay; depends on the PPI API and web feature heads for an end-to-end demo. |
-| `integration/deploy-all-features-foundation-20260824` at `e34c00b` | coordination only | Merges the two preceding deploy inputs. Push only as a stacked-PR base; do not merge it directly. |
-| `fix/deploy-combined-demo-consistency-20260824` at `329f2e2` | `integration/deploy-all-features-foundation-20260824` | One-commit cross-feature Compose fix for web startup, worker image parity, and notification links. |
-| `fix/deploy-compose-schema-cleanup-pr-20260824` at `7c256c4` | `integration/deploy-all-features-foundation-20260824` | Removes the remaining obsolete Compose schema declarations after the notification environment removes the first two. |
+| [#12](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/12) — `integration/deploy-all-features-foundation-20260824` at `e34c00b` | `11.0.x` | Draft that merges the notification and PPI deploy inputs. Keep it as a coordination integration until prerequisites are ready. |
+| [#14](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/14) — `fix/deploy-combined-demo-consistency-20260824` at `329f2e2` | `integration/deploy-all-features-foundation-20260824` | Clean one-commit cross-feature Compose fix for web startup, worker image parity, and notification links. |
+| [#13](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/13) — `fix/deploy-compose-schema-cleanup-pr-20260824` at `7c256c4` | `integration/deploy-all-features-foundation-20260824` | Clean removal of the remaining obsolete Compose schema declarations. |
 | `fix/deploy-ppi-privacy-floor-20260824` at `9bb524f` | `11.0.x` | Clean reconstruction of the original local fix, now superseded by the more complete deploy PR #11. Do not open a duplicate PR. Rebase downstream coordination branches after #11 merges. |
-| `integration/deploy-all-features-pr-ready-20260824` at `aae51de` | coordination only | Combines the reviewed deploy fixes for downstream documentation. Push only as a stacked-PR base. |
+| [#15](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/15) — `integration/deploy-all-features-pr-ready-20260824` at `aae51de` | `fix/deploy-combined-demo-consistency-20260824` | Clean draft coordination merge that adds the schema and PPI-floor histories for downstream documentation. Rebase after deploy PR #11. |
 | `docs/deploy-all-features-runbook-pr-20260824` at `b43b831` | `integration/deploy-all-features-pr-ready-20260824` | One-commit combined-demo runbook update. Retarget to `11.0.x` after the deploy prerequisites merge. |
 | `chore/deploy-all-features-integration-lock-pr-20260824` | `docs/deploy-all-features-runbook-pr-20260824` | Locks validated API/web revisions and carries this index. Keep draft until both referenced component commits are published. |
 
