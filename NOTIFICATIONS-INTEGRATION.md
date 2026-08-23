@@ -135,4 +135,3 @@ Build and tag the web, API, and appserver/Sidekiq artifacts from this integratio
 configure the SMTP/VAPID/sender secrets outside Git, migrate the database, start
 the worker, then deploy API and web. Do not reuse the checked-in development
 VAPID key in a hosted environment.
-

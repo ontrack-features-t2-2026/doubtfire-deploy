@@ -292,4 +292,3 @@ End on the full notifications page and say:
 - Any claim that this is a native app.
 - Any claim that EN-V08 is a completed booking feature without explicit product
   approval.
-
