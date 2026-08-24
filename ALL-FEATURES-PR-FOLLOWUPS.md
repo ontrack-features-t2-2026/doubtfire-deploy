@@ -1,5 +1,10 @@
 # OnTrack 11.0.x all-features PR follow-up index
 
+> **Historical PR audit.** Check states and branch heads below are point-in-time
+> evidence. Use `HANDOVER.md` for the final release inputs, operator ownership,
+> production acceptance, rollback, and demo boundary, and recheck GitHub before
+> merging.
+
 This is the central coordination record for turning the validated CPD, Peer
 Progress Indicator (PPI), Email Notifications, and Mobile Notifications demo
 into reviewable pull requests. GitHub Issues are disabled in these repositories,

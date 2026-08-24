@@ -5,6 +5,64 @@ umask 077
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PRODUCTION_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
+REPOSITORY_DIR="$(cd -- "${PRODUCTION_DIR}/.." && pwd)"
+
+# Prevent a development identity-provider registration from being committed
+# again. Values are intentionally not printed because the failure itself may
+# represent a credential exposure.
+python3 - "${REPOSITORY_DIR}" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+root = Path(sys.argv[1])
+configuration_files = [
+    root / ".devcontainer/devcontainer.env",
+    root / ".devcontainer/docker-compose.yml",
+    root / "development/api.env",
+    root / "development/docker-compose.yml",
+    root / "development/docker-compose.full.yml",
+    root / "production/.env.production.example",
+    root / "production/docker-compose.yml",
+]
+institution_markers = (
+    "rapid.test.aaf.edu.au",
+    "signon-uat.deakin.edu.au",
+    "sync-uat.deakin.edu.au",
+)
+literal_secret = re.compile(r"^\s*DF_SECRET_KEY_AAF\s*(?::|=)\s*(.*)$")
+failures = []
+
+for path in configuration_files:
+    text = path.read_text(encoding="utf-8")
+    lowered = text.lower()
+    if any(marker in lowered for marker in institution_markers):
+        failures.append(f"{path.relative_to(root)} contains an institution AAF endpoint")
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        match = literal_secret.match(line)
+        if not match:
+            continue
+        value = match.group(1).strip()
+        if value and not value.startswith("${") and value != "REPLACE_ME":
+            failures.append(
+                f"{path.relative_to(root)}:{line_number} contains a literal AAF secret"
+            )
+
+if failures:
+    raise SystemExit("\n".join(failures))
+print("ok - tracked configuration has no institution AAF credential")
+PY
+
+grep -Fq 'DF_AUTH_METHOD: ${DF_AUTH_METHOD:-database}' \
+  "${REPOSITORY_DIR}/.devcontainer/docker-compose.yml"
+grep -Fq 'DF_AUTH_METHOD=database' \
+  "${REPOSITORY_DIR}/.devcontainer/.env.example"
+grep -Fq 'DF_AUTH_METHOD: ${DF_AUTH_METHOD:-database}' \
+  "${REPOSITORY_DIR}/development/docker-compose.yml"
+grep -Fq 'DF_AUTH_METHOD=database' \
+  "${REPOSITORY_DIR}/development/.env.example"
+printf 'ok - optional development AAF configuration keeps an explicit safe auth default\n'
+
 # Unix socket paths are short on some platforms (notably macOS), so keep this
 # fixture directly under /tmp instead of a potentially long TMPDIR path.
 FIXTURE_DIR="$(mktemp -d "/tmp/df-production-test.XXXXXX")"
@@ -231,6 +289,56 @@ printf 'ok - Docker API policy is default-deny and helper-scoped\n'
 grep -Fq -- '--wait-timeout' "${PRODUCTION_DIR}/deploy.sh"
 printf 'ok - deployment wait is bounded\n'
 
+grep -Fq 'Stage and health-check web first' "${PRODUCTION_DIR}/deploy.sh"
+grep -Fq -- '--no-deps' "${PRODUCTION_DIR}/deploy.sh"
+grep -Fq 'Entering bounded migration maintenance window' "${PRODUCTION_DIR}/deploy.sh"
+grep -Fq 'maintenance_services=(proxy apiserver sidekiq pdfgen migrate)' "${PRODUCTION_DIR}/deploy.sh"
+grep -Fq 'stop --timeout 60 "${maintenance_services[@]}"' "${PRODUCTION_DIR}/deploy.sh"
+grep -Fq '10#${WAIT_TIMEOUT} <= 86400' "${PRODUCTION_DIR}/deploy.sh"
+if "${PRODUCTION_DIR}/deploy.sh" one two three >/dev/null 2>&1; then
+  printf 'deploy.sh accepted extra arguments.\n' >&2
+  exit 1
+fi
+if "${PRODUCTION_DIR}/deploy.sh" /does/not/exist 86401 >/dev/null 2>&1; then
+  printf 'deploy.sh accepted an excessive wait timeout.\n' >&2
+  exit 1
+fi
+printf 'ok - forward rollout stages callback-compatible web before API\n'
+
+publish_script="${PRODUCTION_DIR}/publish-release.sh"
+[[ -x "${publish_script}" ]] || {
+  printf 'Production release publisher must be executable.\n' >&2
+  exit 1
+}
+bash -n "${publish_script}"
+grep -Fq -- '--sbom=true' "${publish_script}"
+grep -Fq -- '--provenance=mode=max' "${publish_script}"
+grep -Fq 'org.opencontainers.image.revision=${source_revision}' "${publish_script}"
+grep -Fq 'org.opencontainers.image.version=${RELEASE_VERSION}' "${publish_script}"
+grep -Fq '"containerimage\.digest"' "${publish_script}"
+grep -Fq '"${REGISTRY_NAMESPACE}/${image_name}@${digest}"' "${publish_script}"
+grep -Fq 'submodule foreach --quiet --recursive' "${publish_script}"
+grep -Fq 'git -C "${component_path}" archive --format=tar HEAD' "${publish_script}"
+grep -Fq 'git archive --format=tar --output="${archive}" HEAD' "${publish_script}"
+grep -Fq '"${API_CONTEXT}/deployApi.Dockerfile" "${API_CONTEXT}"' "${publish_script}"
+grep -Fq 'PUBLISHED_MANIFEST_LINES+=(' "${publish_script}"
+grep -Fq 'printf '\''%s\n'\'' "${PUBLISHED_MANIFEST_LINES[@]}"' "${publish_script}"
+if grep -Fq 'imagetools inspect "${image_tag}"' "${publish_script}"; then
+  printf 'Release publisher must resolve the digest from its Buildx metadata, not a mutable tag.\n' >&2
+  exit 1
+fi
+grep -Fq 'deployApi.Dockerfile' "${publish_script}"
+grep -Fq 'deployAppSvr.Dockerfile' "${publish_script}"
+for unsafe_release_version in latest 11.0.x RELEASE_OWNER_APPROVED_VERSION; do
+  if PUBLISH_RELEASE_CONFIRM=1 "${publish_script}" \
+    registry.example.edu/ontrack "${unsafe_release_version}" linux/amd64 \
+    >/dev/null 2>&1; then
+    printf 'Release publisher accepted unsafe version: %s\n' "${unsafe_release_version}" >&2
+    exit 1
+  fi
+done
+printf 'ok - release publication is revision-locked and emits attested image digests\n'
+
 verify_script="${PRODUCTION_DIR}/verify.sh"
 [[ -x "${verify_script}" ]] || {
   printf 'verify.sh must be executable.\n' >&2
@@ -244,6 +352,7 @@ for required_source in \
   '/ngsw-worker.js' \
   'http://127.0.0.1:3000/readiness' \
   'db:abort_if_pending_migrations' \
+  '20260824000002' \
   'Sidekiq::ProcessSet' \
   'aggregate_peer_progress' \
   'poll_communication_set_schedules' \

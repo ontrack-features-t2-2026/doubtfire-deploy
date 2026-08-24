@@ -3,6 +3,8 @@
 !/data/**/
 !/data/**/.gitkeep
 /node_modules/
+/.devcontainer/.env
+/development/.env
 
 # Production runtime configuration, credentials, and local TLS material.
 /production/.env.production

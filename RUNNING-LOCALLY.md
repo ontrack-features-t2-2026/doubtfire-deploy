@@ -55,20 +55,18 @@ isolated [all-features demo runtime](development/all-features-demo/README.md).
 It owns a separate Compose project and database and is the preferred option for
 showing CPD, PPI, and notification examples without retaining ad-hoc seed data.
 
-The original frozen lock uses `integration/11.0.x-all-features-20260824` in all
-three sibling repositories:
+The final source revisions are recorded in [HANDOVER.md](HANDOVER.md) and pinned
+by this repository's API and web gitlinks. A fresh clone can initialise them
+recursively. The demo launcher resolves sources in this order: explicit
+`DF_DEMO_API_PATH`/`DF_DEMO_WEB_PATH`, complete sibling checkouts, then the
+gitlinks. It fails before Compose if the chosen source is incomplete.
 
-- **doubtfire-deploy**: `integration/11.0.x-all-features-20260824`
+For editable sibling checkouts, use the published integration branch in each
+repository and verify that its exact revision matches `HANDOVER.md`:
+
+- **doubtfire-deploy**: `integration/deploy-all-features-foundation-20260824`
 - **doubtfire-api**: `integration/11.0.x-all-features-20260824`
 - **doubtfire-web**: `integration/11.0.x-all-features-20260824`
-
-For the current validated local follow-up demo in this workspace, use API branch
-`demo/all-features-followups-20260824` at exact revision
-`64b27f906ca63f4979e6f849c92caec8d7ca75ee` instead. The local-path Compose file
-runs the sibling checkout, so rebuild the API and worker after selecting it.
-This local coordination revision includes API PR #65 and an asynchronous-mail
-test adjustment; it is not the frozen API umbrella or release base. A fresh
-clone should use the published lock until a refreshed umbrella is available.
 
 This is the singular local CPD, PPI, Email Notifications, and Mobile Notifications
 integration. Do not mix it with the older individual feature branches. The api and web

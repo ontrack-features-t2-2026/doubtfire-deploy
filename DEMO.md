@@ -1,5 +1,11 @@
 # Demo handover — notifications
 
+> **Historical frozen demo.** Keep this record for provenance only. The
+> supported, disposable CPD/PPI/email/push walkthrough is now
+> `development/all-features-demo/README.md`, using the exact revisions in
+> `HANDOVER.md`. Do not follow the branches, ports or readiness claims below for
+> the final handover.
+
 Everything needed to run the Monday demo, for whoever is presenting.
 
 One branch per repo, all called `demo/notifications`. It carries the whole

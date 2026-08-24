@@ -139,12 +139,26 @@ production.
 
 ### Web Push VAPID contract
 
-Generate a new P-256 VAPID pair for this production installation using the
-matching API release on a trusted administration host:
+Generate a new P-256 VAPID pair for this production installation from the exact
+accepted API image on a trusted administration host. The production host does
+not need Ruby or Bundler. Set `DF_API_IMAGE` to the accepted immutable API digest
+and `DF_VAPID_DIR` to a new protected directory; the container has no network,
+does not log the keys, and writes them directly to that directory:
 
 ```bash
-bundle exec ruby -e \
-  "require 'web_push'; key = WebPush.generate_key; puts key.public_key; puts key.private_key"
+: "${DF_API_IMAGE:?Set the accepted apiserver image@sha256 digest}"
+: "${DF_VAPID_DIR:?Set a new absolute protected key directory}"
+[[ "${DF_API_IMAGE}" =~ @sha256:[0-9a-f]{64}$ ]]
+[[ "${DF_VAPID_DIR}" == /* && ! -e "${DF_VAPID_DIR}" ]]
+sudo install -d -m 0700 -o "$(id -u)" -g "$(id -g)" "${DF_VAPID_DIR}"
+docker run --rm --network none --read-only --cap-drop ALL \
+  --security-opt no-new-privileges --log-driver none \
+  --volume "${DF_VAPID_DIR}:/keys" \
+  "${DF_API_IMAGE}" \
+  bundle exec ruby -e \
+  'require "web_push"; key = WebPush.generate_key; {"/keys/public" => key.public_key, "/keys/private" => key.private_key}.each { |path, value| File.open(path, File::WRONLY | File::CREAT | File::EXCL, 0o600) { |file| file.write(value) } }'
+sudo chown "$(id -u):$(id -g)" "${DF_VAPID_DIR}/public" "${DF_VAPID_DIR}/private"
+chmod 0600 "${DF_VAPID_DIR}/public" "${DF_VAPID_DIR}/private"
 ```
 
 Set `DOUBTFIRE_VAPID_PUBLIC_KEY`, `DOUBTFIRE_VAPID_PRIVATE_KEY`, and an explicit
@@ -152,7 +166,11 @@ Set `DOUBTFIRE_VAPID_PUBLIC_KEY`, `DOUBTFIRE_VAPID_PRIVATE_KEY`, and an explicit
 or HTTPS contact URL. The example values are deliberately non-secret
 placeholders and validation will reject them. The checked-in development pair
 is also rejected. The private key is supplied only to the API and Sidekiq
-containers; never put it in Git, tickets, build logs, or browser configuration.
+containers; transfer it into the approved secret manager using a secure editor
+or secret-ingestion mechanism, never by printing it to a terminal. Never put it
+in Git, tickets, command arguments, build logs, or browser configuration.
+Securely delete the temporary key directory after escrow and deployment are
+verified.
 
 Store the private key in the institution's secret manager and encrypted recovery
 escrow alongside the Rails encryption keys. Preserve it across deployments and
@@ -171,18 +189,15 @@ changes; do not assume browser vendors will keep endpoints static.
 
 ## 2. Pin tested images
 
-Every image setting must use an immutable digest:
+Every image setting must use a fully qualified image name followed by
+`@sha256:` and exactly 64 hexadecimal digest characters.
 
-```text
-registry.example/image@sha256:64_hex_characters
-```
-
-Build or select mutually compatible API, app-worker, web, TexLive, and JPlag
-images, then resolve the digest after publishing. For example:
-
-```bash
-docker buildx imagetools inspect lmsdoubtfire/doubtfire-web:RELEASE_TAG
-```
+Build the mutually compatible API, app-worker, web, TexLive, and JPlag images
+through the revision-locked publisher in `RELEASING.md`; use only the complete
+digest manifest it emits after every registry verification succeeds. Resolve
+the separately selected proxy, MariaDB, Redis, and HAProxy images to digests
+through the institution's approved registry process. Never place the candidate
+tag itself in `.env.production`.
 
 Record the tested digest in `.env.production`, including for Nginx, MariaDB,
 Redis, and `haproxy:3.2-alpine`. The app-worker image must include the secure
@@ -218,6 +233,7 @@ Copy the mail helper examples outside the repository and replace every
 placeholder:
 
 ```bash
+sudo install -d -m 0755 /etc/doubtfire
 sudo install -m 0644 shared-files/aliases.example /etc/doubtfire/aliases
 sudo install -m 0600 shared-files/msmtprc.example /etc/doubtfire/msmtprc
 ```
@@ -248,16 +264,25 @@ Deploy only after it passes:
 ./verify.sh
 ```
 
-The default health wait is five minutes. Supply a different bounded value in
-seconds as the second argument when an approved migration needs longer:
+The default health wait is five minutes. Supply a different bounded value from
+1 through 86400 seconds as the second argument when an approved migration needs
+longer:
 
 ```bash
 ./deploy.sh .env.production 900
 ```
 
 The deployment helper validates configuration, pulls the exact image digests,
-applies the stack, waits for declared health checks and running worker processes,
-and prints diagnostics on a failed or timed-out rollout. `verify.sh` then runs
+stages and health-checks the hardened web image, then enters a bounded
+maintenance window by stopping public ingress and all application writers before
+applying the API migration and worker stack. Before invoking it, the release
+owner must confirm the consistent recovery set and migration rehearsal are
+current and use database monitoring to clear or explicitly accept long-running
+transactions. This order is required because the new web accepts both legacy
+query and fragment authentication callbacks, while the hardened API emits
+fragments that an older web build cannot consume. The helper waits for declared
+health checks and running worker processes, keeps ingress and writers stopped on
+a failed rollout, and prints diagnostics. `verify.sh` then runs
 the fail-closed post-deploy gates against the same environment file and local
 Compose wrapper. A one-shot `migrate` service runs after MariaDB is healthy; API
 and worker startup is gated on successful migrations. API readiness checks both
@@ -284,8 +309,9 @@ variables or a remote Docker context from changing the configuration that was
 validated. The production host must expose its local Docker daemon at that
 standard socket path.
 
-On the first deployment, initialise Doubtfire's roles, statuses, and initial
-administrator once:
+On the first deployment, keep external ingress blocked with the host firewall or
+institutional edge until initialisation and manual identity acceptance are
+complete. Initialise Doubtfire's roles, statuses, and initial administrator once:
 
 ```bash
 ./compose.sh exec apiserver bundle exec rake db:init
@@ -293,7 +319,9 @@ administrator once:
 
 Then use the Rails console to replace the initial administrator's placeholder
 profile with the authorised operational identity. Do not enable database
-authentication or retain a default password to make first login easier.
+authentication or retain a default password to make first login easier. Complete
+the administrator IdP login/logout and the applicable verification gates before
+allowing public ingress.
 
 ## 5. Verify the deployment
 
@@ -360,24 +388,190 @@ Monitor at least:
 
 ## Backups and restore tests
 
-Back up the MariaDB database and the complete `STUDENT_WORK_PATH` as one recovery
-set. A database dump can be streamed to protected host storage without writing
-it into a container:
+The receiving institution must set and approve a recovery point objective
+(RPO), recovery time objective (RTO), backup frequency, retention, encryption
+owner, off-host copy location, and restore-test frequency. Record those values
+and the last successful isolated restore in the release change. A backup is not
+accepted merely because a file exists.
+
+Back up the MariaDB database and the complete `STUDENT_WORK_PATH` as one labelled
+recovery set. For the cleanest consistency boundary, enter maintenance, stop all
+application writers, let Sidekiq stop gracefully, capture both components, and
+then restart. Run the following as one reviewed Bash block from the `production`
+directory. Replace the student-work source with the exact path from the validated
+environment file:
 
 ```bash
-BACKUP_DIR=/srv/doubtfire/backups
-sudo install -d -m 0700 "${BACKUP_DIR}"
-umask 077
-./compose.sh exec -T doubtfire-db sh -c \
-  'exec mariadb-dump --single-transaction --routines --events \
-    --user="$MARIADB_USER" --password="$MARIADB_PASSWORD" "$MARIADB_DATABASE"' \
-  > "${BACKUP_DIR}/doubtfire-$(date -u +%Y%m%dT%H%M%SZ).sql"
+(
+  set -Eeuo pipefail
+  umask 077
+
+  DF_BACKUP_ROOT=/srv/doubtfire/backups
+  DF_STUDENT_WORK_SOURCE=/srv/doubtfire/student-work
+  DF_BACKUP_ID="doubtfire-$(date -u +%Y%m%dT%H%M%SZ)"
+  DF_BACKUP_PATH="${DF_BACKUP_ROOT}/${DF_BACKUP_ID}"
+  DF_BACKUP_OPERATOR_UID="$(id -u)"
+  DF_BACKUP_OPERATOR_GID="$(id -g)"
+  DF_MAINTENANCE_STARTED=0
+
+  backup_failure() {
+    local status="$1"
+    trap - ERR INT TERM
+    if [[ "${DF_MAINTENANCE_STARTED}" == 1 ]]; then
+      timeout --kill-after=10s 120s \
+        ./compose.sh stop --timeout 60 proxy apiserver sidekiq pdfgen || true
+    fi
+    printf 'Backup failed; if maintenance started, application writers remain stopped.\n' >&2
+    exit "${status}"
+  }
+  trap 'backup_failure $?' ERR
+  trap 'backup_failure 130' INT
+  trap 'backup_failure 143' TERM
+
+  DF_RUNNING_SERVICES="$(./compose.sh ps --status running --services)"
+  if grep -Fxq migrate <<< "${DF_RUNNING_SERVICES}"; then
+    printf 'Refusing backup while the migration service is running.\n' >&2
+    exit 1
+  fi
+  [[ -d "${DF_STUDENT_WORK_SOURCE}" ]] || {
+    printf 'Student-work source is not a directory.\n' >&2
+    exit 1
+  }
+
+  sudo install -d -m 0700 \
+    -o "${DF_BACKUP_OPERATOR_UID}" \
+    -g "${DF_BACKUP_OPERATOR_GID}" \
+    "${DF_BACKUP_PATH}"
+
+  DF_MAINTENANCE_STARTED=1
+  timeout --kill-after=10s 120s \
+    ./compose.sh stop --timeout 60 proxy apiserver sidekiq pdfgen
+  ./compose.sh exec -T doubtfire-db sh -c \
+    'exec mariadb-dump --single-transaction --routines --events \
+      --user="$MARIADB_USER" --password="$MARIADB_PASSWORD" "$MARIADB_DATABASE"' \
+    > "${DF_BACKUP_PATH}/database.sql"
+  sudo tar --acls --xattrs --numeric-owner \
+    -C "${DF_STUDENT_WORK_SOURCE}" \
+    -cpf "${DF_BACKUP_PATH}/student-work.tar" \
+    .
+  sudo chown \
+    "${DF_BACKUP_OPERATOR_UID}:${DF_BACKUP_OPERATOR_GID}" \
+    "${DF_BACKUP_PATH}/student-work.tar"
+  chmod 0600 \
+    "${DF_BACKUP_PATH}/database.sql" \
+    "${DF_BACKUP_PATH}/student-work.tar"
+
+  (
+    cd "${DF_BACKUP_PATH}"
+    sha256sum database.sql student-work.tar > SHA256SUMS
+  )
+  ./compose.sh up --detach --wait --wait-timeout 300
+  ./verify.sh .env.production 60
+
+  DF_MAINTENANCE_STARTED=0
+  trap - ERR INT TERM
+)
 ```
 
-Use filesystem or storage-provider snapshots for student work and database data
-where available. Encrypt backups, restrict access, define retention, and keep a
-copy outside the deployment host. A backup is not accepted until it has been
-restored into an isolated environment and application-level checks pass.
+Stopping the writers creates a short outage but avoids a database record being
+captured without its corresponding student file. A storage platform may instead
+use an application-consistent snapshot mechanism, but document and test its
+equivalent quiesce boundary. If any backup command fails, keep traffic stopped,
+preserve diagnostics, and do not label the partial set usable.
+
+Encrypt the set, restrict access, validate checksums after transfer, and keep an
+off-host copy. Record the matching secret-manager/escrow versions for all Rails
+signing and Active Record encryption keys, database credentials, VAPID private
+key, TLS material, and external-service configuration. Do not place those
+secrets inside the Git repository or an unencrypted backup manifest.
+
+Redis/Sidekiq is not part of the authoritative recovery set. Restoring an old
+queue can replay non-idempotent exports or notifications, while discarding it
+can lose jobs accepted after the database recovery point. The maintenance
+boundary minimises that window. The incident/recovery owner must record the
+queue-loss decision, inspect database state, let cron recreate scheduled work,
+queue a fresh PPI aggregation for approved units, and have users request lost
+one-off exports/PDFs again. Never bulk replay notification jobs without a
+product/privacy review because recipients may receive duplicates.
+
+### Isolated restore rehearsal
+
+Restore only onto an isolated host with empty data paths, blocked production
+email/push egress, a test hostname/certificate, the exact release manifest, and
+the matching escrowed Rails/encryption/VAPID material. Never test by overwriting
+the live paths.
+
+1. Verify the encrypted set and its checksums before extraction. Keep the
+   restore path explicit rather than relying on a later working directory:
+
+   ```bash
+   : "${DF_RESTORE_DIR:?Set the absolute restored backup directory}"
+   [[ "${DF_RESTORE_DIR}" == /* ]]
+   cd "${DF_RESTORE_DIR}"
+   sha256sum --check SHA256SUMS
+   ```
+
+2. Restore `student-work.tar` to the empty `STUDENT_WORK_PATH`, preserving
+   numeric ownership, ACLs and extended attributes. Set the exact validated
+   target path; the block refuses a non-empty target:
+
+   ```bash
+   (
+     set -Eeuo pipefail
+     : "${DF_RESTORE_DIR:?Set the absolute restored backup directory}"
+     [[ "${DF_RESTORE_DIR}" == /* ]]
+     DF_STUDENT_WORK_TARGET=/srv/doubtfire/student-work
+     sudo install -d -m 0750 "${DF_STUDENT_WORK_TARGET}"
+     [[ -z "$(sudo find "${DF_STUDENT_WORK_TARGET}" -mindepth 1 -print -quit)" ]] || {
+       printf 'Student-work restore target is not empty.\n' >&2
+       exit 1
+     }
+     sudo tar --acls --xattrs --numeric-owner \
+       -C "${DF_STUDENT_WORK_TARGET}" \
+       -xpf "${DF_RESTORE_DIR}/student-work.tar"
+   )
+   ```
+
+   Confirm the configured JPlag report/archive subdirectories are present and
+   container-readable.
+
+3. From the release's `production` directory, validate the isolated
+   `.env.production`, start only an empty MariaDB and Redis, wait for both to be
+   healthy, prove the target schema has no tables, then import the dump. Set
+   `DF_RESTORE_DIR` to the same absolute path used in step 1:
+
+   ```bash
+   DF_PRODUCTION_DIR="$(pwd)"
+   : "${DF_RESTORE_DIR:?Set the absolute restored backup directory}"
+   [[ "${DF_RESTORE_DIR}" == /* ]]
+   test -x "${DF_PRODUCTION_DIR}/validate.sh"
+   ./validate.sh
+   ./compose.sh up --detach --wait --wait-timeout 120 \
+     doubtfire-db redis-sidekiq
+   ./compose.sh exec -T doubtfire-db sh -ec \
+     'count="$(mariadb --batch --skip-column-names \
+       --user="$MARIADB_USER" --password="$MARIADB_PASSWORD" \
+       --execute="SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=\"$MARIADB_DATABASE\"")"; \
+      test "$count" = 0'
+   ./compose.sh exec -T doubtfire-db sh -c \
+     'exec mariadb --user="$MARIADB_USER" \
+       --password="$MARIADB_PASSWORD" "$MARIADB_DATABASE"' \
+     < "${DF_RESTORE_DIR}/database.sql"
+   ```
+
+4. Run `./deploy.sh` and `./verify.sh`. Confirm the restored migration version,
+   representative users/units/submissions, recent notification state, fresh PPI
+   regeneration, and several sampled student files by application download and
+   checksum. Exercise identity using an approved test integration and keep real
+   SMTP/push delivery blocked.
+
+5. Record start/finish time, achieved RPO/RTO, manifest, backup ID, checksums,
+   secret escrow versions, row/file sampling, queue-loss decision, verifier
+   output, discrepancies and named acceptance. Destroy the isolated copy under
+   the institution's data-handling policy.
+
+Rehearse at the receiving team's approved cadence and before a migration whose
+rollback depends on restore. A failed or stale rehearsal blocks release.
 
 ## Upgrades and rollback
 
@@ -391,12 +585,30 @@ Before an upgrade:
    printed manual gates.
 
 Afterward, repeat the verification checks and inspect worker queues and logs.
-For an application rollback, restore the previous image digests, redeploy, run
-`./verify.sh`, and repeat every applicable manual gate before accepting the
-rollback. If a migration is not backward-compatible, image rollback alone is
-unsafe; follow the migration's documented rollback or restore the matching
-database and student-work recovery set in a controlled outage, then run the
-same automated and manual acceptance gates.
+For an application rollback, enter a maintenance/drain window and restore the
+previous image digests. Roll back the API before the web so the hardened web can
+continue to accept either authentication callback form; do not expose an old
+web image to a still-hardened API. Use the verifier and acceptance procedure
+retained with the previous release manifest and repeat every applicable
+release-independent manual gate before accepting the rollback. The current
+`verify.sh` intentionally requires this release's exact schema, cron jobs and
+PPI/VAPID contract; do not weaken it or claim its expected failure against older
+images is a valid acceptance result. If the previous release has no compatible
+automated verifier, record and complete a named `MANUAL-ROLLBACK-CONTRACT` gate
+covering public and dependency readiness, migrations, queues, identity,
+messaging, data integrity, ports and credential-safe logs. If a migration is not
+backward-compatible, image rollback alone is unsafe; follow the migration's
+documented rollback or restore the matching database and student-work recovery
+set in a controlled outage, then run the same applicable automated and manual
+acceptance gates.
+
+`deploy.sh` is a forward-only helper and must not be used for rollback because it
+stages web first. Before release, the previous manifest must contain the exact
+previous deploy checkout, environment/digest manifest, bounded API/app-worker-
+before-web commands, migration decision, failure diagnostics and version-matched
+acceptance procedure, all proven in rehearsal. Absence of that executable
+rollback record is a release blocker rather than permission to improvise during
+an incident.
 
 Never run `./compose.sh down --volumes` against production. The temporary
 TexLive and JPlag volumes are disposable, but the host paths configured for the

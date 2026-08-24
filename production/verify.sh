@@ -167,6 +167,11 @@ run_compose_check \
   "database migration state" \
   exec -T apiserver bundle exec rails db:abort_if_pending_migrations
 
+schema_version_check='expected = 20260824000002; actual = ActiveRecord::Base.connection.migration_context.current_version; abort "Database schema version #{actual} does not match release #{expected}" unless actual == expected'
+run_compose_check \
+  "release database schema version 20260824000002" \
+  exec -T apiserver bundle exec rails runner "${schema_version_check}"
+
 sidekiq_check='require "sidekiq/api"; processes = Sidekiq::ProcessSet.new.to_a; abort "No live Sidekiq process is registered" if processes.empty?; begin; configured_concurrency = Integer(ENV.fetch("DF_SIDEKIQ_CONCURRENCY"), 10); rescue KeyError, ArgumentError; abort "Sidekiq concurrency configuration is missing or invalid"; end; abort "Live Sidekiq concurrency does not match configuration" unless processes.all? { |process| process["concurrency"].to_i == configured_concurrency }; expected = { "aggregate_peer_progress" => "AggregatePeerProgressJob", "poll_communication_set_schedules" => "PollCommunicationSetSchedulesJob", "send_new_task_available_notifications" => "SendNewTaskAvailableNotificationsJob", "send_due_soon_reminders" => "SendDueSoonRemindersJob" }; jobs = Sidekiq::Cron::Job.all; valid = expected.all? { |name, klass| job = jobs.find { |candidate| candidate.name == name }; job && job.klass == klass && job.status == "enabled" }; abort "Required Sidekiq cron jobs are missing, disabled, or mapped to the wrong class" unless valid'
 run_compose_check \
   "Sidekiq process, concurrency, and required cron schedule" \

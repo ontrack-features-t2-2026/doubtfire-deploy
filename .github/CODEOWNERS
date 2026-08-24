@@ -1,0 +1,11 @@
+# Release-critical files require review from the team that owns the handover.
+# Repository rules must require CODEOWNER approval for this to be enforced.
+/production/ @ontrack-features-t2-2026/ontrack-leads
+/.gitmodules @ontrack-features-t2-2026/ontrack-leads
+/HANDOVER.md @ontrack-features-t2-2026/ontrack-leads
+/DEPLOYING.md @ontrack-features-t2-2026/ontrack-leads
+/MIGRATING.md @ontrack-features-t2-2026/ontrack-leads
+/RELEASING.md @ontrack-features-t2-2026/ontrack-leads
+/.github/workflows/ @ontrack-features-t2-2026/ontrack-leads
+/doubtfire-api @ontrack-features-t2-2026/ontrack-leads
+/doubtfire-web @ontrack-features-t2-2026/ontrack-leads

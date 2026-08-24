@@ -1,5 +1,12 @@
 # Running OnTrack locally with Podman on Bazzite or Fedora
 
+> **Historical, unsupported troubleshooting transcript.** Its service names,
+> ports, and generated override no longer match the tracked three-file Compose
+> merge, and its setup commands must not be treated as the current demo or
+> production runbook. Use [RUNNING-LOCALLY.md](../RUNNING-LOCALLY.md) or the
+> [retained all-features demo](../development/all-features-demo/README.md).
+> This record remains only as background for future reviewed Podman support.
+
 This guide records the changes that were needed to run the existing OnTrack development environment with rootless Podman on Bazzite.
 
 The normal Docker Compose files were kept. A separate `docker-compose.podman.yml` file was added for the Podman-specific changes.
@@ -256,13 +263,10 @@ if [ -f ../../doubtfire-web/package-lock.json ]; then
 fi
 ```
 
-Recreate the Angular cache as the current user:
-
-```bash
-sudo rm -rf ../../doubtfire-web/.angular
-mkdir -p ../../doubtfire-web/.angular
-chmod 700 ../../doubtfire-web/.angular
-```
+The original workaround recursively deleted a privileged cwd-relative cache
+path. Do not repeat it. The supported local workflows use their tracked Compose
+and named-volume contracts; a future Podman procedure must resolve and validate
+an exact disposable cache target before offering any cleanup operation.
 
 Check the ownership:
 

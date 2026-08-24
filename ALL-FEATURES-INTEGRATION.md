@@ -1,5 +1,11 @@
 # OnTrack 11.0.x all-features integration lock
 
+> **Historical integration record.** The final release revisions, production
+> gates, ownership, known risks, and retained-demo boundary are now defined by
+> `HANDOVER.md`. Where this dated lock describes the production template or
+> component revisions differently, `HANDOVER.md` and the current gitlinks are
+> authoritative.
+
 This file records the local integration assembled on 24 August 2026. It is the
 single local CPD, Peer Progress Indicator (PPI), Email Notifications (EN), and
 Mobile Notifications (MN) stack. The companion operating instructions are in

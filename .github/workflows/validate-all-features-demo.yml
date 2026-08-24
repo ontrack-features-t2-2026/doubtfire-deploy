@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - ".github/workflows/validate-all-features-demo.yml"
+      - ".gitmodules"
+      - "doubtfire-api"
+      - "doubtfire-web"
       - "development/all-features-demo/**"
       - "development/docker-compose.yml"
       - "development/docker-compose.local-paths.yml"
@@ -21,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: recursive
 

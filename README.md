@@ -15,12 +15,21 @@ The Doubtfire Deploy repository is used to manage releases of Doubtfire using co
 
 ## How to use this project for development
 
-Refer to [CONTRIBUTING.md](CONTRIBUTING.md) for details on getting started contributing to Doubtfire.
+Use [RUNNING-LOCALLY.md](RUNNING-LOCALLY.md) for the current combined checkout
+and demo workflow. [CONTRIBUTING.md](CONTRIBUTING.md) retains general project and
+commit guidance, but its older runtime and branch examples are not the 11.0.x
+release contract.
 
 ## How to use this project for deployment
 
-Use the fail-closed production Compose stack and operator runbook in
+Start with the release-owner checklist in [HANDOVER.md](HANDOVER.md), then use
+the fail-closed production Compose stack and operator runbook in
 [DEPLOYING.md](DEPLOYING.md). The deployment requires institution-owned secrets,
-TLS, identity-provider and SMTP settings, persistent storage, and immutable
-container image digests; none are defaulted in the repository.
+TLS, identity-provider and SMTP settings, persistent storage, monitoring,
+restored backups, manual acceptance, and immutable container image digests;
+none are defaulted in the repository.
 
+The isolated all-features demonstration remains available under
+[`development/all-features-demo`](development/all-features-demo/README.md). It
+uses synthetic data and development-only accounts and is never production
+configuration.

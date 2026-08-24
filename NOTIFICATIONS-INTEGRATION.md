@@ -1,5 +1,10 @@
 # Notifications integration environment
 
+> **Historical integration record.** The hosted blockers below describe an
+> earlier stack and are not current production instructions. Use `HANDOVER.md`,
+> `RELEASING.md`, `MIGRATING.md`, and `DEPLOYING.md`; use
+> `development/all-features-demo/README.md` for the retained demo.
+
 This directory is the combined Email Notifications (EN) and Mobile
 Notifications (MN) environment. It deliberately uses dedicated sibling
 worktrees so the primary API and web repositories can remain on their unrelated
