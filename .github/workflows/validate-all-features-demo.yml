@@ -22,12 +22,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Check helper shell syntax
         run: bash -n development/all-features-demo/demo.sh
 
       - name: Render merged Compose configuration
-        env:
-          DF_DEMO_API_PATH: ${{ github.workspace }}/doubtfire-api
-          DF_DEMO_WEB_PATH: ${{ github.workspace }}/doubtfire-web
         run: development/all-features-demo/demo.sh config > /dev/null

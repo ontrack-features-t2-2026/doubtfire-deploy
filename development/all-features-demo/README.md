@@ -50,6 +50,13 @@ DF_DEMO_WEB_PATH=/absolute/path/to/web-worktree \
 
 Use the same two path variables for every later helper command in that shell.
 
+Source discovery is deterministic: explicit `DF_DEMO_API_PATH` and
+`DF_DEMO_WEB_PATH` values win, followed by complete sibling checkouts, then the
+deploy repository submodules. The helper fails before Compose starts if the API
+demo seed task or web demo store is missing. A fresh clone can therefore use
+`git clone --recurse-submodules`, while contributors can continue to point at
+isolated worktrees without editing Compose files.
+
 ## Inspect or stop
 
 ```bash
