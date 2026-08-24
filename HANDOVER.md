@@ -17,7 +17,7 @@ secrets, storage, monitoring, backup, privacy, and browser/device acceptance.
 | Component | Release branch | Pinned revision |
 | --- | --- | --- |
 | Deploy and handover | `integration/deploy-all-features-foundation-20260824` | Protected signed release tag; record the resolved commit externally |
-| API and Sidekiq | `integration/11.0.x-all-features-20260824` | `5f7ccc7c8f8dc9715d45e3607b7365c47237ac7e` |
+| API and Sidekiq | `integration/11.0.x-all-features-20260824` | `87177a15f1802ca93cb13b984da636a9bb7ad083` |
 | Web application | `integration/11.0.x-all-features-20260824` | `4d0d994b0bc9cd516ba85855972812a1b5764d9a` |
 
 A Git commit cannot contain its own final hash. After the accepted deploy commit
@@ -102,7 +102,7 @@ Maintenance window and timezone:
 Approved release version:
 Deploy Git revision:
 Deploy signed release ref:
-API Git revision: 5f7ccc7c8f8dc9715d45e3607b7365c47237ac7e
+API Git revision: 87177a15f1802ca93cb13b984da636a9bb7ad083
 API signed release ref:
 Web Git revision: 4d0d994b0bc9cd516ba85855972812a1b5764d9a
 Web signed release ref:
