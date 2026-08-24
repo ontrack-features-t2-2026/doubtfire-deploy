@@ -6,7 +6,7 @@ into reviewable pull requests. GitHub Issues are disabled in these repositories,
 so [deploy PR #12](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/12)
 and this file are the canonical tracker.
 
-GitHub state was refreshed at `2026-08-23T23:36:04Z`. Check states are a
+GitHub state was refreshed at `2026-08-24T00:02:45Z`. Check states are a
 snapshot and must be rechecked immediately before merging. `BLOCKED` usually
 means the repository ruleset is waiting for review; it does not imply a failing
 test unless a failure is called out below.
@@ -24,8 +24,8 @@ draft and merge the focused PRs into their natural feature branches.
    -> [API #61](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/61)
    -> [web #84](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/84).
    Live merges have nested #61 into API #59, and web #84 plus its route-test
-   follow-up #85 into web #72. The remaining parent review path is therefore
-   API #59, then web #72; wait for both parent check rollups to finish green.
+   follow-up #85 into web #72. Both parent rollups are now green. The remaining
+   review/merge path is therefore API #59, then web #72.
 3. For PPI, review [API #62](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/62),
    which now contains merged privacy-floor PR #55. Coordinate its rollout with
    [deploy #11](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/11):
@@ -69,21 +69,20 @@ reviewed and merged.
 
 | PR | State and checks at refresh | Dependency and action |
 | --- | --- | --- |
-| [#59](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/59) — `fix/cpd-task-definition-privacy-pr-20260824` at `5278ddd54fd1` -> `feature/cross-unit` | Open, ready, `BLOCKED`; both RuboCop jobs passing and both unit-test jobs in progress | Now carries the privacy repair and merged recommendation API #61. This is the remaining API parent gate. |
-| [#61](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/61) — recommendation contract at `ca20f6bfa584` | Merged into #59 while its two unit-test jobs were still in progress | Do not treat the child merge alone as release evidence; require #59's parent-branch checks to finish green. |
+| [#59](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/59) — `fix/cpd-task-definition-privacy-pr-20260824` at `5278ddd54fd1` -> `feature/cross-unit` | Open, ready, `BLOCKED`; 4/4 checks passing. Unit suites passed in 29m31s and 31m51s | Carries the privacy repair and merged recommendation API #61. This is the remaining API parent review gate. |
+| [#61](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/61) — recommendation contract at `ca20f6bfa584` | Merged into #59 | The authoritative #59 parent rollup subsequently completed 4/4 green. |
 | [#62](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/62) — `style/ppi-sample-data-lint-pr-20260824` at `1fbbd75842d5` -> `feature/peer-progress-indicator` | Open, ready, `BLOCKED`; 4/4 checks passing | Contains merged #55, so it is now the single PPI lint/privacy review path. Coordinate with deploy #11. |
 | [#53](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/53) — upload test isolation | Open, ready, `BLOCKED`; 6/6 passing | Independent `11.0.x` test repair. |
 | [#54](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/54) — deployment metadata IDs | Open, ready, `BLOCKED`; 6/6 passing | Independent `11.0.x` workflow repair. |
 | [#56](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/56) — notification group email link | Open, ready, `BLOCKED`; 6/6 passing | Merge into `feature/notifications`. |
 | [#57](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/57) — notification settings isolation | Open, ready, `BLOCKED`; 6/6 passing | Merge into `feature/notifications`. |
 | [#60](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/60) — combined API umbrella at `7f912987d489` | Open draft, `BLOCKED`; 7/7 passing | Coordination/final-validation only; it now includes merged demo-cohort PR #64. |
-| [#63](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/63) — production runtime hardening | Open, ready, `BLOCKED`; both RuboCop jobs passing and both unit-test jobs in progress | Separate production-readiness review, not part of the locked demo. |
+| [#63](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/63) — production runtime hardening | Open, ready, `BLOCKED`; 4/4 checks passing | Separate production-readiness review, not part of the locked demo. |
 
 API #55 was merged into #62 rather than the release branch. API #61 was merged
 into #59 rather than `feature/cross-unit`. API #58 was merged into its parent
-email PR #48; #48 remains open with both RuboCop jobs and one unit-test job
-passing while its second unit-test job runs. The original in-scope API feature
-PRs #41-#43 and #45-#52 remain open. Their completed checks are green, and
+email PR #48; #48 remains open with 4/4 checks passing. The original in-scope
+API feature PRs #41-#43 and #45-#52 remain open. Their checks are green, and
 GitHub marks them `BLOCKED` pending review.
 
 `test/notifications-settings-contract-pr-20260824` still has no unique commit
@@ -183,8 +182,8 @@ validation.
       into #72.
 - [x] Obtain a fully green API #62 check rollup after merged PPI PR #55.
 - [x] Obtain a fully green web #72 parent check rollup after merged #84/#85.
-- [ ] Wait for API #59's two unit-test jobs and require a fully green parent
-      rollup before it merges.
+- [x] Obtain a fully green API #59 parent rollup after merged #61; both unit
+      suites and both RuboCop jobs passed.
 - [ ] Obtain the required team approval and resolve every review thread on the
       focused PRs.
 - [ ] Merge the remaining recommendation parents in order: API #59, then web
