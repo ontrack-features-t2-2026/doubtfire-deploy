@@ -1,0 +1,91 @@
+# Local-only overlay for the removable all-features demonstration environment.
+#
+# Use this after docker-compose.yml and docker-compose.local-paths.yml with the
+# Compose project name `all-features-demo`. Every stateful path and container is
+# isolated from the older `notifications-demo` project.
+
+x-all-features-demo-environment: &all-features-demo-environment
+  DF_DEMO_DATA_PROFILE: all-features
+  DF_DEV_DB_DATABASE: doubtfire-all-features-demo
+  DF_TEST_DB_DATABASE: doubtfire-all-features-demo-test
+  DF_PRODUCTION_DB_DATABASE: doubtfire-all-features-demo
+  DF_INSTITUTION_HOST: http://localhost:4400
+  DF_INSTITUTION_EMAIL_SENDER: noreply@ontrack-demo.invalid
+  DOUBTFIRE_VAPID_SUBJECT: mailto:noreply@ontrack-demo.invalid
+
+services:
+  dev-db:
+    container_name: all-features-demo-db
+    environment:
+      MYSQL_ROOT_PASSWORD: db-root-password
+      MYSQL_DATABASE: doubtfire-all-features-demo
+      MYSQL_USER: dfire
+      MYSQL_PASSWORD: pwd
+    volumes: !override
+      - all_features_demo_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+  redis-sidekiq:
+    container_name: all-features-demo-redis
+    volumes: !override
+      - all_features_demo_redis_data:/data
+
+  mailpit:
+    container_name: all-features-demo-mailpit
+
+  doubtfire-api:
+    container_name: all-features-demo-api
+    image: ontrack-all-features-demo-api:20260824
+    build: ${DF_DEMO_API_PATH:-../../doubtfire-api}
+    volumes: !override
+      - ${DF_DEMO_API_PATH:-../../doubtfire-api}:/doubtfire
+      - all_features_demo_tmp:/doubtfire/tmp
+      - all_features_demo_student_work:/student-work
+    environment:
+      <<: *all-features-demo-environment
+    depends_on: !override
+      dev-db:
+        condition: service_healthy
+      redis-sidekiq:
+        condition: service_started
+      mailpit:
+        condition: service_healthy
+
+  doubtfire-sidekiq:
+    container_name: all-features-demo-sidekiq
+    image: ontrack-all-features-demo-api:20260824
+    build: ${DF_DEMO_API_PATH:-../../doubtfire-api}
+    volumes: !override
+      - ${DF_DEMO_API_PATH:-../../doubtfire-api}:/doubtfire
+      - all_features_demo_tmp:/doubtfire/tmp
+      - all_features_demo_student_work:/student-work
+    environment:
+      <<: *all-features-demo-environment
+    depends_on: !override
+      dev-db:
+        condition: service_healthy
+      redis-sidekiq:
+        condition: service_started
+      mailpit:
+        condition: service_healthy
+
+  doubtfire-web:
+    container_name: all-features-demo-web
+    image: ontrack-all-features-demo-web:20260824
+    build: ${DF_DEMO_WEB_PATH:-../../doubtfire-web}
+    volumes: !override
+      - ${DF_DEMO_WEB_PATH:-../../doubtfire-web}:/doubtfire-web
+      - all_features_demo_web_node_modules:/doubtfire-web/node_modules
+      - ./proxy.conf.docker.json:/doubtfire-web/proxy.conf.json:ro
+
+volumes:
+  all_features_demo_db_data:
+  all_features_demo_redis_data:
+  all_features_demo_student_work:
+  all_features_demo_tmp:
+  all_features_demo_web_node_modules:
