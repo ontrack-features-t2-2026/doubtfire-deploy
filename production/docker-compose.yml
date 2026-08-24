@@ -61,6 +61,13 @@ x-api-environment: &api-environment
   DF_REDIS_SIDEKIQ_URL: redis://redis-sidekiq:6379/0
   DF_STUDENT_WORK_DIR: /student-work
 
+x-live-feature-environment: &live-feature-environment
+  DF_PPI_MINIMUM_COHORT_SIZE: ${DF_PPI_MINIMUM_COHORT_SIZE:?Set DF_PPI_MINIMUM_COHORT_SIZE in .env.production}
+  DF_PPI_STALE_AFTER_HOURS: ${DF_PPI_STALE_AFTER_HOURS:?Set DF_PPI_STALE_AFTER_HOURS in .env.production}
+  DOUBTFIRE_VAPID_PUBLIC_KEY: ${DOUBTFIRE_VAPID_PUBLIC_KEY:?Set DOUBTFIRE_VAPID_PUBLIC_KEY in .env.production}
+  DOUBTFIRE_VAPID_PRIVATE_KEY: ${DOUBTFIRE_VAPID_PRIVATE_KEY:?Set DOUBTFIRE_VAPID_PRIVATE_KEY in .env.production}
+  DOUBTFIRE_VAPID_SUBJECT: ${DOUBTFIRE_VAPID_SUBJECT:?Set DOUBTFIRE_VAPID_SUBJECT in .env.production}
+
 networks:
   edge:
   data:
@@ -138,7 +145,8 @@ services:
 
   apiserver:
     image: ${DOUBTFIRE_API_IMAGE:?Set DOUBTFIRE_API_IMAGE to an immutable image digest}
-    environment: *api-environment
+    environment:
+      <<: [*api-environment, *live-feature-environment]
     expose:
       - "3000"
     depends_on:
@@ -247,7 +255,8 @@ services:
   sidekiq:
     image: ${DOUBTFIRE_APP_IMAGE:?Set DOUBTFIRE_APP_IMAGE to an immutable image digest}
     environment:
-      <<: *api-environment
+      <<: [*api-environment, *live-feature-environment]
+      DF_SIDEKIQ_CONCURRENCY: ${DF_SIDEKIQ_CONCURRENCY:?Set DF_SIDEKIQ_CONCURRENCY in .env.production}
       DOCKER_HOST: tcp://docker-socket-proxy:2375
       LATEX_BUILD_PATH: /texlive/shell/latex_build.sh
       LATEX_CONTAINER_NAME: ${COMPOSE_PROJECT_NAME}-texlive-sidekiq

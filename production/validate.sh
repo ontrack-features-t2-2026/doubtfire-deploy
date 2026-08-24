@@ -261,6 +261,53 @@ for key in "${secret_keys[@]}"; do
   secret_values+=("${VALUE}")
 done
 
+require_value DF_SIDEKIQ_CONCURRENCY
+[[ "${VALUE}" =~ ^[2-5]$ ]] || fail "DF_SIDEKIQ_CONCURRENCY must be an integer from 2 to 5"
+
+require_value DF_PPI_MINIMUM_COHORT_SIZE
+[[ "${VALUE}" =~ ^[1-9][0-9]*$ ]] || fail "DF_PPI_MINIMUM_COHORT_SIZE must be a positive integer"
+ppi_minimum_cohort_size="${VALUE}"
+if (( ${#ppi_minimum_cohort_size} < 2 )) ||
+   (( ${#ppi_minimum_cohort_size} == 2 && 10#${ppi_minimum_cohort_size} < 21 )); then
+  fail "DF_PPI_MINIMUM_COHORT_SIZE must be at least the privacy floor of 21"
+fi
+
+require_value DF_PPI_STALE_AFTER_HOURS
+[[ "${VALUE}" =~ ^[1-9][0-9]*$ ]] || fail "DF_PPI_STALE_AFTER_HOURS must be a positive integer"
+(( ${#VALUE} <= 2 )) || fail "DF_PPI_STALE_AFTER_HOURS must not exceed the approved maximum of 48 hours"
+(( 10#${VALUE} <= 48 )) || fail "DF_PPI_STALE_AFTER_HOURS must not exceed the approved maximum of 48 hours"
+
+legacy_vapid_public_key='BOs-KbIoHK7gUIX3i2_uEuDoouj-GKxB-mY9CRmLNmd4Wn-SSl254E1g6jR1ukL3e37p8uCpaMjOvfAB0BwzvSI='
+legacy_vapid_private_key='_NFIWSUTdCdLJJFh87pf4ekQLmNYqsweZ4288NpVZaY='
+
+reject_placeholder DOUBTFIRE_VAPID_PUBLIC_KEY
+[[ "${VALUE}" =~ ^B[A-Za-z0-9_-]{86}=?$ ]] || fail "DOUBTFIRE_VAPID_PUBLIC_KEY must be a base64url P-256 public key"
+[[ "${VALUE}" != "${legacy_vapid_public_key}" ]] || fail "DOUBTFIRE_VAPID_PUBLIC_KEY must not reuse the checked-in development key"
+
+reject_placeholder DOUBTFIRE_VAPID_PRIVATE_KEY
+[[ "${VALUE}" =~ ^[A-Za-z0-9_-]{43}=?$ ]] || fail "DOUBTFIRE_VAPID_PRIVATE_KEY must be a base64url P-256 private key"
+[[ "${VALUE}" != "${legacy_vapid_private_key}" ]] || fail "DOUBTFIRE_VAPID_PRIVATE_KEY must not reuse the checked-in development key"
+
+reject_placeholder DOUBTFIRE_VAPID_SUBJECT
+vapid_subject="${VALUE}"
+case "${vapid_subject}" in
+  mailto:*)
+    [[ "${vapid_subject}" =~ ^mailto:[^[:space:]@]+@([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,63}$ ]] || fail "DOUBTFIRE_VAPID_SUBJECT mailto: value must contain an operational email address"
+    ;;
+  https://*)
+    [[ "${vapid_subject}" =~ ^https://[^[:space:]]+$ ]] || fail "DOUBTFIRE_VAPID_SUBJECT HTTPS value is invalid"
+    ;;
+  *)
+    fail "DOUBTFIRE_VAPID_SUBJECT must use mailto: or https://"
+    ;;
+esac
+lowered="$(printf '%s' "${vapid_subject}" | tr '[:upper:]' '[:lower:]')"
+case "${lowered}" in
+  *localhost*|*.local|*.local/*|*.invalid|*.invalid/*|*.example|*.example/*|*.test|*.test/*)
+    fail "DOUBTFIRE_VAPID_SUBJECT must use an operational production contact"
+    ;;
+esac
+
 for key in DF_INSTITUTION_PRODUCT_NAME DF_INSTITUTION_EMAIL_DOMAIN DF_INSTITUTION_EMAIL_SENDER DF_INSTITUTION_NAME; do
   reject_placeholder "${key}"
 done

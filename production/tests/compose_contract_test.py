@@ -54,8 +54,53 @@ for service_name in ("apiserver", "migrate", "pdfgen", "sidekiq"):
     require("MARIADB_ROOT_PASSWORD" not in environment, f"{service_name} received the database root password")
     require("TLS_PRIVATE_KEY_PATH" not in environment, f"{service_name} received the TLS key path")
     require(environment["OVERSEER_ENABLED"] == "0", f"{service_name} must keep Overseer disabled")
-    require("DF_PPI_MINIMUM_COHORT_SIZE" not in environment, f"{service_name} received an unsupported PPI setting")
-    require("DOUBTFIRE_VAPID_PUBLIC_KEY" not in environment, f"{service_name} received an unsupported VAPID setting")
+
+live_feature_keys = {
+    "DF_PPI_MINIMUM_COHORT_SIZE",
+    "DF_PPI_STALE_AFTER_HOURS",
+    "DOUBTFIRE_VAPID_PUBLIC_KEY",
+    "DOUBTFIRE_VAPID_PRIVATE_KEY",
+    "DOUBTFIRE_VAPID_SUBJECT",
+}
+for service_name in ("apiserver", "sidekiq"):
+    environment = services[service_name]["environment"]
+    for key in live_feature_keys:
+        require(
+            bool(environment.get(key)),
+            f"{service_name} must receive the validated {key} value",
+        )
+
+api_environment = services["apiserver"]["environment"]
+sidekiq_environment = services["sidekiq"]["environment"]
+require(
+    sidekiq_environment.get("DF_SIDEKIQ_CONCURRENCY") == "5",
+    "Sidekiq must receive the validated concurrency value",
+)
+require(
+    2 <= int(sidekiq_environment["DF_SIDEKIQ_CONCURRENCY"]) <= 5,
+    "Sidekiq concurrency is outside the ActiveRecord pool bound",
+)
+for service_name, service in services.items():
+    if service_name != "sidekiq":
+        require(
+            "DF_SIDEKIQ_CONCURRENCY" not in service.get("environment", {}),
+            f"{service_name} must not receive Sidekiq concurrency",
+        )
+for key in live_feature_keys:
+    require(
+        api_environment[key] == sidekiq_environment[key],
+        f"API and Sidekiq must receive the same {key} value",
+    )
+require(int(api_environment["DF_PPI_MINIMUM_COHORT_SIZE"]) >= 21, "PPI cohort privacy floor is unsafe")
+require(
+    1 <= int(api_environment["DF_PPI_STALE_AFTER_HOURS"]) <= 48,
+    "PPI freshness window is outside the approved range",
+)
+
+for service_name in ("migrate", "pdfgen"):
+    environment = services[service_name]["environment"]
+    for key in live_feature_keys:
+        require(key not in environment, f"{service_name} must not receive {key}")
 
 require(
     services["apiserver"]["depends_on"]["migrate"]["condition"] == "service_completed_successfully",

@@ -97,6 +97,12 @@ DF_SECRET_KEY_MOSS=
 DF_ENCRYPTION_PRIMARY_KEY=primary_0123456789abcdef0123456789abcdef
 DF_ENCRYPTION_DETERMINISTIC_KEY=deterministic_0123456789abcdef0123456789abcdef
 DF_ENCRYPTION_KEY_DERIVATION_SALT=salt_0123456789abcdef0123456789abcdef
+DF_SIDEKIQ_CONCURRENCY=5
+DF_PPI_MINIMUM_COHORT_SIZE=21
+DF_PPI_STALE_AFTER_HOURS=48
+DOUBTFIRE_VAPID_PUBLIC_KEY=BGmEh2DUs9VeJOXeMyaM4Lp5dGpe7qvFrcZn6o-3YMmQdl_mU6T4G0f4ZUfpmMb-NVNK5PaxmV8fcom_r65BujA
+DOUBTFIRE_VAPID_PRIVATE_KEY=seHBhwGDAn88u-5mzxBV-6jn2cSn_zFp2BpkLDn95uw
+DOUBTFIRE_VAPID_SUBJECT=mailto:push-operations@test.edu.au
 DF_INSTITUTION_PRODUCT_NAME=OnTrack
 DF_INSTITUTION_SETTINGS_RB=no_institution_setting.rb
 DF_INSTITUTION_EMAIL_DOMAIN=test.edu.au
@@ -194,6 +200,29 @@ grep -Fq 'proxy_pass http://$api_upstream/readiness' "${PRODUCTION_DIR}/proxy-ng
 grep -Fq 'proxy_pass http://$web_upstream' "${PRODUCTION_DIR}/proxy-nginx.conf.template"
 printf 'ok - proxy refreshes service discovery\n'
 
+proxy_template="${PRODUCTION_DIR}/proxy-nginx.conf.template"
+grep -Fq 'map $uri $doubtfire_access_loggable' "${proxy_template}"
+grep -Fq 'map $uri $doubtfire_referrer_policy' "${proxy_template}"
+grep -Fq '~^/api/scorm(?:/|$) 0;' "${proxy_template}"
+grep -Fq '~^/api/scorm(?:/|$) no-referrer;' "${proxy_template}"
+server_count="$(grep -Ec '^server \{' "${proxy_template}")"
+conditional_access_log_count="$(grep -Fc 'access_log /var/log/nginx/access.log main if=$doubtfire_access_loggable;' "${proxy_template}")"
+[[ "${server_count}" -gt 0 && "${conditional_access_log_count}" -eq "${server_count}" ]] || {
+  printf 'Every proxy virtual server must suppress credential-bearing SCORM access logs.\n' >&2
+  exit 1
+}
+referrer_policy_header_count="$(grep -Fc 'add_header Referrer-Policy $doubtfire_referrer_policy always;' "${proxy_template}")"
+[[ "${referrer_policy_header_count}" -eq 2 ]] || {
+  printf 'The public HTTP redirect and HTTPS application servers must apply the mapped referrer policy.\n' >&2
+  exit 1
+}
+if grep -Eiq 'location[^\{]*scorm' "${proxy_template}"; then
+  printf 'SCORM mitigation must not duplicate or bypass the common API proxy location.\n' >&2
+  exit 1
+fi
+grep -Fq 'location ~ ^/api(?:/|$)' "${proxy_template}"
+printf 'ok - proxy suppresses SCORM credential paths without changing API routing\n'
+
 grep -Fq 'helper_exec_path' "${PRODUCTION_DIR}/docker-socket-proxy.cfg"
 grep -Fq '__PROJECT_NAME__-texlive-' "${PRODUCTION_DIR}/docker-socket-proxy.cfg"
 grep -Fq 'http-request deny deny_status 403' "${PRODUCTION_DIR}/docker-socket-proxy.cfg"
@@ -202,6 +231,187 @@ printf 'ok - Docker API policy is default-deny and helper-scoped\n'
 grep -Fq -- '--wait-timeout' "${PRODUCTION_DIR}/deploy.sh"
 printf 'ok - deployment wait is bounded\n'
 
+verify_script="${PRODUCTION_DIR}/verify.sh"
+[[ -x "${verify_script}" ]] || {
+  printf 'verify.sh must be executable.\n' >&2
+  exit 1
+}
+for required_source in \
+  '/healthz' \
+  '/healthz/web' \
+  '/index.html' \
+  '/ngsw.json' \
+  '/ngsw-worker.js' \
+  'http://127.0.0.1:3000/readiness' \
+  'db:abort_if_pending_migrations' \
+  'Sidekiq::ProcessSet' \
+  'aggregate_peer_progress' \
+  'poll_communication_set_schedules' \
+  'send_new_task_available_notifications' \
+  'send_due_soon_reminders' \
+  'DF_SIDEKIQ_CONCURRENCY' \
+  'process["concurrency"].to_i == configured_concurrency' \
+  'DF_PPI_MINIMUM_COHORT_SIZE' \
+  'DOUBTFIRE_VAPID_PRIVATE_KEY' \
+  'MANUAL GATES STILL REQUIRED'; do
+  grep -Fq "${required_source}" "${verify_script}" || {
+    printf 'verify.sh is missing required check: %s\n' "${required_source}" >&2
+    exit 1
+  }
+done
+grep -Fq 'DOUBTFIRE_CONFIG_ONLY=0 "${SCRIPT_DIR}/validate.sh" "${ENV_FILE}"' "${verify_script}"
+if grep -Eq 'printenv|docker (container )?inspect.*Env' "${verify_script}"; then
+  printf 'verify.sh must not print container environments.\n' >&2
+  exit 1
+fi
+printf 'ok - post-deploy verification source contract\n'
+
+if output="$(${verify_script} one two three 2>&1)"; then
+  printf 'Expected verify.sh to reject extra arguments.\n' >&2
+  exit 1
+fi
+printf '%s' "${output}" | grep -Fq 'Usage:'
+if output="$(${verify_script} "${BASE_ENV}" 0 2>&1)"; then
+  printf 'Expected verify.sh to reject a zero timeout.\n' >&2
+  exit 1
+fi
+printf '%s' "${output}" | grep -Fq 'between 1 and 300 seconds'
+if output="$(${verify_script} "${BASE_ENV}" 301 2>&1)"; then
+  printf 'Expected verify.sh to reject an excessive timeout.\n' >&2
+  exit 1
+fi
+printf '%s' "${output}" | grep -Fq 'between 1 and 300 seconds'
+if output="$(${verify_script} "${FIXTURE_DIR}/missing.env" 5 2>&1)"; then
+  printf 'Expected verify.sh to reject a missing environment file.\n' >&2
+  exit 1
+fi
+printf '%s' "${output}" | grep -Fq 'environment file not found'
+printf 'ok - post-deploy verification rejects invalid invocation\n'
+
+verify_fixture="${FIXTURE_DIR}/verify-runtime"
+mkdir -p "${verify_fixture}/bin"
+cp "${verify_script}" "${verify_fixture}/verify.sh"
+cat > "${verify_fixture}/validate.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+cat > "${verify_fixture}/compose.sh" <<'EOF'
+#!/usr/bin/env bash
+case "$*" in
+  *Sidekiq::ProcessSet*)
+    case "${VERIFY_STUB_FAIL_AT:-}" in
+      cron|concurrency) exit 1 ;;
+    esac
+    ;;
+esac
+exit 0
+EOF
+cat > "${verify_fixture}/bin/timeout" <<'EOF'
+#!/usr/bin/env bash
+while [[ "${1:-}" == --* ]]; do
+  shift
+done
+shift
+exec "$@"
+EOF
+cat > "${verify_fixture}/bin/curl" <<'EOF'
+#!/usr/bin/env bash
+output_file=/dev/null
+url=
+while (( $# > 0 )); do
+  case "$1" in
+    --output)
+      output_file="$2"
+      shift 2
+      ;;
+    --write-out|--noproxy|--proto|--connect-timeout|--max-time|--max-filesize)
+      shift 2
+      ;;
+    --disable|--silent|--show-error|--tlsv1.2)
+      shift
+      ;;
+    https://*)
+      url="$1"
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+if [[ "${VERIFY_STUB_FAIL_AT:-}" == public-health && "${url}" == */healthz ]]; then
+  printf '503'
+  exit 0
+fi
+case "${url}" in
+  */index.html)
+    content='<!doctype html><html></html>'
+    content_type='text/html'
+    ;;
+  */ngsw.json)
+    content='{"configVersion":1,"assetGroups":[]}'
+    content_type='application/json'
+    ;;
+  */ngsw-worker.js)
+    if [[ "${VERIFY_STUB_FAIL_AT:-}" == pwa-worker ]]; then
+      content='<!doctype html><html></html>'
+    else
+      content='const cacheName = "ngsw:test";'
+    fi
+    content_type='application/javascript'
+    ;;
+  *)
+    content='ok'
+    content_type='text/plain'
+    ;;
+esac
+if [[ "${output_file}" != /dev/null ]]; then
+  printf '%s' "${content}" > "${output_file}"
+fi
+printf '200\n%s' "${content_type}"
+EOF
+cat > "${verify_fixture}/runtime.env" <<EOF
+SERVER_NAME=${HOSTNAME_UNDER_TEST}
+EOF
+chmod 700 \
+  "${verify_fixture}/verify.sh" \
+  "${verify_fixture}/validate.sh" \
+  "${verify_fixture}/compose.sh" \
+  "${verify_fixture}/bin/timeout" \
+  "${verify_fixture}/bin/curl"
+chmod 600 "${verify_fixture}/runtime.env"
+
+PATH="${verify_fixture}/bin:${PATH}" \
+  "${verify_fixture}/verify.sh" "${verify_fixture}/runtime.env" 5 \
+  > "${verify_fixture}/success.out"
+grep -Fq 'Automated production verification passed.' "${verify_fixture}/success.out"
+grep -Fq 'MANUAL GATES STILL REQUIRED' "${verify_fixture}/success.out"
+
+if VERIFY_STUB_FAIL_AT=cron PATH="${verify_fixture}/bin:${PATH}" \
+  "${verify_fixture}/verify.sh" "${verify_fixture}/runtime.env" 5 \
+  > "${verify_fixture}/cron-failure.out" 2>&1; then
+  printf 'Expected verify.sh to fail when required Sidekiq cron jobs are absent.\n' >&2
+  exit 1
+fi
+grep -Fq 'Sidekiq process, concurrency, and required cron schedule failed' "${verify_fixture}/cron-failure.out"
+
+if VERIFY_STUB_FAIL_AT=concurrency PATH="${verify_fixture}/bin:${PATH}" \
+  "${verify_fixture}/verify.sh" "${verify_fixture}/runtime.env" 5 \
+  > "${verify_fixture}/concurrency-failure.out" 2>&1; then
+  printf 'Expected verify.sh to fail when live Sidekiq concurrency differs from configuration.\n' >&2
+  exit 1
+fi
+grep -Fq 'Sidekiq process, concurrency, and required cron schedule failed' "${verify_fixture}/concurrency-failure.out"
+
+if VERIFY_STUB_FAIL_AT=pwa-worker PATH="${verify_fixture}/bin:${PATH}" \
+  "${verify_fixture}/verify.sh" "${verify_fixture}/runtime.env" 5 \
+  > "${verify_fixture}/pwa-failure.out" 2>&1; then
+  printf 'Expected verify.sh to fail when the PWA worker resolves to HTML.\n' >&2
+  exit 1
+fi
+grep -Fq 'ngsw-worker.js resolved to HTML' "${verify_fixture}/pwa-failure.out"
+printf 'ok - post-deploy verification fails closed on runtime regressions\n'
+
 expect_failure placeholder-secret DF_SECRET_KEY_BASE REPLACE_ME "placeholder value"
 expect_failure inline-comment-padding DF_SECRET_KEY_BASE 'x # padding-padding-padding-padding' "inline comments are not allowed"
 expect_failure compose-interpolation DF_SMTP_PASSWORD 'unsafe$value' "contains a dollar sign"
@@ -209,6 +419,27 @@ expect_failure mutable-image DOUBTFIRE_WEB_IMAGE lmsdoubtfire/doubtfire-web:late
 expect_failure development-auth DF_AUTH_METHOD database "development-only"
 expect_failure invalid-processor-memory TEXLIVE_MEMORY_LIMIT unlimited "positive whole number"
 expect_failure unsupported-overseer OVERSEER_ENABLED 1 "must remain disabled"
+expect_failure missing-sidekiq-concurrency DF_SIDEKIQ_CONCURRENCY '' "must be set"
+expect_failure low-sidekiq-concurrency DF_SIDEKIQ_CONCURRENCY 1 "integer from 2 to 5"
+expect_failure excessive-sidekiq-concurrency DF_SIDEKIQ_CONCURRENCY 6 "integer from 2 to 5"
+expect_failure invalid-sidekiq-concurrency DF_SIDEKIQ_CONCURRENCY 2.5 "integer from 2 to 5"
+expect_failure missing-ppi-cohort DF_PPI_MINIMUM_COHORT_SIZE '' "must be set"
+expect_failure unsafe-ppi-cohort DF_PPI_MINIMUM_COHORT_SIZE 20 "privacy floor of 21"
+expect_failure invalid-ppi-cohort DF_PPI_MINIMUM_COHORT_SIZE 21.5 "positive integer"
+expect_failure missing-ppi-staleness DF_PPI_STALE_AFTER_HOURS '' "must be set"
+expect_failure zero-ppi-staleness DF_PPI_STALE_AFTER_HOURS 0 "positive integer"
+expect_failure excessive-ppi-staleness DF_PPI_STALE_AFTER_HOURS 49 "approved maximum of 48 hours"
+expect_failure missing-vapid-public DOUBTFIRE_VAPID_PUBLIC_KEY '' "must be set"
+expect_failure placeholder-vapid-public DOUBTFIRE_VAPID_PUBLIC_KEY REPLACE_ME_WITH_VAPID_PUBLIC_KEY "placeholder value"
+expect_failure malformed-vapid-public DOUBTFIRE_VAPID_PUBLIC_KEY not-a-vapid-key "base64url P-256 public key"
+expect_failure missing-vapid-private DOUBTFIRE_VAPID_PRIVATE_KEY '' "must be set"
+expect_failure malformed-vapid-private DOUBTFIRE_VAPID_PRIVATE_KEY not-a-vapid-key "base64url P-256 private key"
+expect_failure missing-vapid-subject DOUBTFIRE_VAPID_SUBJECT '' "must be set"
+expect_failure invalid-vapid-subject DOUBTFIRE_VAPID_SUBJECT ftp://push.test.edu.au "must use mailto: or https://"
+expect_failure non-production-vapid-subject DOUBTFIRE_VAPID_SUBJECT mailto:noreply@ontrack-demo.invalid "operational production contact"
+expect_failure placeholder-vapid-subject DOUBTFIRE_VAPID_SUBJECT mailto:push@REPLACE_ME.edu.au "placeholder value"
+expect_failure development-vapid-public DOUBTFIRE_VAPID_PUBLIC_KEY BOs-KbIoHK7gUIX3i2_uEuDoouj-GKxB-mY9CRmLNmd4Wn-SSl254E1g6jR1ukL3e37p8uCpaMjOvfAB0BwzvSI= "checked-in development key"
+expect_failure development-vapid-private DOUBTFIRE_VAPID_PRIVATE_KEY _NFIWSUTdCdLJJFh87pf4ekQLmNYqsweZ4288NpVZaY= "checked-in development key"
 
 insecure_env="${FIXTURE_DIR}/insecure-mode.env"
 cp "${BASE_ENV}" "${insecure_env}"

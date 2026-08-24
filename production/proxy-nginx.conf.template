@@ -1,20 +1,37 @@
 server_tokens off;
 
+# The inherited SCORM route includes a reusable credential in its path. Keep
+# routing in the common API location, but do not persist that path in proxy
+# access logs or allow browsers to send it as a Referer.
+map $uri $doubtfire_access_loggable {
+  default 1;
+  ~^/api/scorm(?:/|$) 0;
+}
+
+map $uri $doubtfire_referrer_policy {
+  default strict-origin-when-cross-origin;
+  ~^/api/scorm(?:/|$) no-referrer;
+}
+
 server {
   listen 80 default_server;
   server_name _;
+  access_log /var/log/nginx/access.log main if=$doubtfire_access_loggable;
   return 444;
 }
 
 server {
   listen 80;
   server_name ${SERVER_NAME};
+  access_log /var/log/nginx/access.log main if=$doubtfire_access_loggable;
+  add_header Referrer-Policy $doubtfire_referrer_policy always;
   return 301 https://${SERVER_NAME}$request_uri;
 }
 
 server {
   listen 443 ssl default_server;
   server_name _;
+  access_log /var/log/nginx/access.log main if=$doubtfire_access_loggable;
 
   ssl_certificate /etc/nginx/tls/fullchain.pem;
   ssl_certificate_key /etc/nginx/tls/private.key;
@@ -26,6 +43,7 @@ server {
   listen 443 ssl;
   http2 on;
   server_name ${SERVER_NAME};
+  access_log /var/log/nginx/access.log main if=$doubtfire_access_loggable;
 
   ssl_certificate /etc/nginx/tls/fullchain.pem;
   ssl_certificate_key /etc/nginx/tls/private.key;
@@ -38,7 +56,7 @@ server {
 
   add_header Strict-Transport-Security "max-age=31536000" always;
   add_header X-Content-Type-Options "nosniff" always;
-  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Referrer-Policy $doubtfire_referrer_policy always;
 
   # Resolve service names through Docker DNS for every container lifecycle,
   # rather than retaining an address from Nginx startup.
