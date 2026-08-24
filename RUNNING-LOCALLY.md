@@ -50,6 +50,11 @@ does not go there.
 
 ## Combined all-features 11.0.x
 
+For a deterministic, disposable demonstration with a UI data switch, use the
+isolated [all-features demo runtime](development/all-features-demo/README.md).
+It owns a separate Compose project and database and is the preferred option for
+showing CPD, PPI, and notification examples without retaining ad-hoc seed data.
+
 The original frozen lock uses `integration/11.0.x-all-features-20260824` in all
 three sibling repositories:
 
