@@ -1,0 +1,33 @@
+name: Validate all-features demo
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/validate-all-features-demo.yml"
+      - "development/all-features-demo/**"
+      - "development/docker-compose.yml"
+      - "development/docker-compose.local-paths.yml"
+      - "development/proxy.conf.docker.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-demo-configuration:
+    name: Shell and Compose configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check helper shell syntax
+        run: bash -n development/all-features-demo/demo.sh
+
+      - name: Render merged Compose configuration
+        env:
+          DF_DEMO_API_PATH: ${{ github.workspace }}/doubtfire-api
+          DF_DEMO_WEB_PATH: ${{ github.workspace }}/doubtfire-web
+        run: development/all-features-demo/demo.sh config > /dev/null
