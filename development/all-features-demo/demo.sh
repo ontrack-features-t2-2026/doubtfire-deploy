@@ -44,20 +44,48 @@ compose=(
 )
 
 usage() {
-  echo "Usage: $0 {start|seed|status|logs|stop|config|destroy}"
+  echo "Usage: $0 {prepare|start|seed|verify|status|logs|stop|config|sources|destroy}"
   echo
+  echo "prepare builds, starts, seeds, restarts, and verifies the complete demo."
   echo "Source order: explicit DF_DEMO_*_PATH, sibling checkout, deploy submodule."
   echo "The destroy command also requires ALL_FEATURES_DEMO_CONFIRM_DESTROY=1."
 }
 
+seed_demo() {
+  "${compose[@]}" run --rm \
+    -e DF_DEMO_DATA_PROFILE=all-features \
+    doubtfire-api bundle exec rake db:migrate db:init db:all_features_demo
+}
+
+verify_demo() {
+  "${compose[@]}" run --rm \
+    -e DF_DEMO_DATA_PROFILE=all-features \
+    doubtfire-api bundle exec rake db:all_features_demo_verify
+}
+
 case "${1:-}" in
+  prepare)
+    # Build first so Compose cannot satisfy the guarded seed from an unrelated
+    # mutable local image. Start only infrastructure until the brand-new
+    # database is migrated and seeded; application readers start afterwards.
+    "${compose[@]}" build doubtfire-api doubtfire-web
+    "${compose[@]}" up -d dev-db redis-sidekiq mailpit
+    seed_demo
+    "${compose[@]}" up -d --wait --wait-timeout 300
+    verify_demo
+    "${compose[@]}" ps -a
+    ;;
   start)
     "${compose[@]}" up -d --build
     ;;
   seed)
-    "${compose[@]}" run --rm \
-      -e DF_DEMO_DATA_PROFILE=all-features \
-      doubtfire-api bundle exec rake db:migrate db:init db:all_features_demo
+    seed_demo
+    # A fresh database can make an eagerly started API or worker exit before
+    # the seed finishes. Ensure the complete demo is running afterwards.
+    "${compose[@]}" up -d --wait --wait-timeout 300
+    ;;
+  verify)
+    verify_demo
     ;;
   status)
     "${compose[@]}" ps -a
@@ -69,7 +97,13 @@ case "${1:-}" in
     "${compose[@]}" stop
     ;;
   config)
-    "${compose[@]}" config
+    "${compose[@]}" config "${@:2}"
+    ;;
+  sources)
+    printf 'API source: %s\n' "${DF_DEMO_API_PATH}"
+    printf 'Web source: %s\n' "${DF_DEMO_WEB_PATH}"
+    git -C "${DF_DEMO_API_PATH}" rev-parse HEAD 2>/dev/null | sed 's/^/API revision: /' || true
+    git -C "${DF_DEMO_WEB_PATH}" rev-parse HEAD 2>/dev/null | sed 's/^/Web revision: /' || true
     ;;
   destroy)
     if [[ "${ALL_FEATURES_DEMO_CONFIRM_DESTROY:-}" != "1" ]]; then

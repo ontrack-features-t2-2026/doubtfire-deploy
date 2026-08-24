@@ -476,14 +476,32 @@ enabled units rather than publishing a smaller cohort. You can raise this
 value, you cannot lower it. `positive_integer_env!` separately rejects a
 missing, zero, negative or non-integer value.
 
-The floor is 21 because the API quantises percentages into 10-point buckets.
-At 20 students each student accounts for exactly half a bucket, leaving some
-rounded outputs that map to only one possible submitted count. At 21 students
-each student's share is smaller than half a bucket, so every published output
-maps to at least two possible counts, including the edge buckets. Changing
-either number without the other breaks that guarantee, so
-`MINIMUM_SAFE_COHORT_SIZE` and `PERCENTAGE_BUCKET_SIZE` are asserted together
-in the API test suite.
+The floor is 21 remaining peers because the API quantises percentages into
+10-point buckets. Before thresholding or quantising, it uses the exact internal
+snapshot counts to remove the authenticated student's known task status and
+upload contribution. A target-grade band therefore needs at least 22 eligible
+students, including the reader, to leave 21 peers. At 20 peers each person
+accounts for exactly half a bucket, leaving some rounded outputs that map to
+only one possible count. At 21 peers each person's share is smaller than half a
+bucket, so every published scalar output maps to at least two possible counts,
+including the edge buckets. Changing either number without the other breaks
+that guarantee, so `MINIMUM_SAFE_COHORT_SIZE` and
+`PERCENTAGE_BUCKET_SIZE` are asserted together in the API test suite.
+
+That scalar guarantee protects the compact completed percentage and the
+additive submitted wire-compatibility percentage. The advanced 15-status
+distribution also considers all peer-only rounded buckets together: the API
+releases the entire vector only when every status has at least two feasible raw
+peer counts after applying the sum constraint. If that stronger check fails,
+the compact value can remain available while the detailed vector is withheld.
+Do not lower the peer floor to force either view to appear.
+
+Reader subtraction requires exact internal `submitted_count` and
+`status_counts` fields. Snapshots created before migration `20260824000003`
+have neither and deliberately return no percentages through the new API until
+the aggregation job refreshes them. The endpoint also fails closed if the
+reader's project membership or task changed after the snapshot, because
+subtracting newer viewer context from an older aggregate would be unsafe.
 
 Use the combined API integration branch named above; the older
 `ppi/student-progress-endpoint` verification pin is superseded. That API
@@ -509,10 +527,11 @@ docker compose -p ppi-live \
 
 This task creates or repairs the synthetic `PPI1001` and `PPI1002` units. It
 derives the students per class from `DF_PPI_MINIMUM_COHORT_SIZE`, rounding up so
-the two-class exact-grade cohorts meet or exceed the configured threshold. With
-the local setting, each class has 11 students per grade and each target-grade
-cohort on a fresh or legacy sample database has 22 students: one above the
-enforced floor of 21. The task changes the PPI setting only for those synthetic
+the two-class exact-grade cohorts leave at least the configured number of peers
+after excluding any one reader. With the local setting, each class has 11
+students per grade and each target-grade cohort on a fresh or legacy sample
+database has 22 students: exactly 21 remaining peers for any reader. The task
+changes the PPI setting only for those synthetic
 units, repairs the current seed-owned user roles, unit and task definitions,
 tutorial capacity and enrolments, and writes and validates fresh snapshots
 before it returns. It is safe to run again against a database previously
@@ -554,8 +573,8 @@ docker compose -p ppi-live \
        tasks.count == projects.count * task_defs.count && \
        tasks.all? { |task| task.local_start_date.present? && task.local_start_date <= Time.zone.now && task.task_definition.target_grade <= task.project.target_grade } && \
        demo.count == 28 && \
-       grades.all? { |grade| cohorts.fetch(grade, 0) >= minimum } && \
-       demo.all? { |snapshot| !snapshot.submitted_percentage.nil? && snapshot.cohort_size == cohorts.fetch(snapshot.target_grade) && \
+       grades.all? { |grade| cohorts.fetch(grade, 0) - 1 >= minimum } && \
+       demo.all? { |snapshot| !snapshot.submitted_count.nil? && !snapshot.status_counts.nil? && snapshot.cohort_size == cohorts.fetch(snapshot.target_grade) && \
          snapshot.calculated_at >= fresh_after && snapshot.calculated_at >= latest_changes.fetch(snapshot.target_grade) }; \
      raise "#{unit.code} is not PPI demo-ready" unless valid; \
      puts "#{unit.code}: enabled=true cohorts=#{cohorts.slice(*grades).inspect} fresh_demo_snapshots=#{demo.count}"; \
@@ -566,8 +585,8 @@ At the checked-in local setting on a fresh or legacy sample database, both lines
 report `enabled=true`, cohorts `{0=>22, 1=>22, 2=>22, 3=>22}`, and
 `fresh_demo_snapshots=28`. Cohorts can be higher after a run with a higher valid
 threshold because the seed never removes students. In every case it adds enough
-students per class to meet or exceed the configured threshold. Never lower the
-configured floor to make a demo visible.
+students per class to leave at least the configured peer threshold after the
+reader is excluded. Never lower the configured floor to make a demo visible.
 
 Production deployments must supply separately reviewed values through their
 own configuration. These values are not secrets.

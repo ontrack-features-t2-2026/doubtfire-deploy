@@ -167,9 +167,9 @@ run_compose_check \
   "database migration state" \
   exec -T apiserver bundle exec rails db:abort_if_pending_migrations
 
-schema_version_check='expected = 20260824000002; actual = ActiveRecord::Base.connection.migration_context.current_version; abort "Database schema version #{actual} does not match release #{expected}" unless actual == expected'
+schema_version_check='expected = 20260824000003; actual = ActiveRecord::Base.connection_pool.migration_context.current_version; abort "Database schema version #{actual} does not match release #{expected}" unless actual == expected'
 run_compose_check \
-  "release database schema version 20260824000002" \
+  "release database schema version 20260824000003" \
   exec -T apiserver bundle exec rails runner "${schema_version_check}"
 
 sidekiq_check='require "sidekiq/api"; processes = Sidekiq::ProcessSet.new.to_a; abort "No live Sidekiq process is registered" if processes.empty?; begin; configured_concurrency = Integer(ENV.fetch("DF_SIDEKIQ_CONCURRENCY"), 10); rescue KeyError, ArgumentError; abort "Sidekiq concurrency configuration is missing or invalid"; end; abort "Live Sidekiq concurrency does not match configuration" unless processes.all? { |process| process["concurrency"].to_i == configured_concurrency }; expected = { "aggregate_peer_progress" => "AggregatePeerProgressJob", "poll_communication_set_schedules" => "PollCommunicationSetSchedulesJob", "send_new_task_available_notifications" => "SendNewTaskAvailableNotificationsJob", "send_due_soon_reminders" => "SendDueSoonRemindersJob" }; jobs = Sidekiq::Cron::Job.all; valid = expected.all? { |name, klass| job = jobs.find { |candidate| candidate.name == name }; job && job.klass == klass && job.status == "enabled" }; abort "Required Sidekiq cron jobs are missing, disabled, or mapped to the wrong class" unless valid'
@@ -177,7 +177,7 @@ run_compose_check \
   "Sidekiq process, concurrency, and required cron schedule" \
   exec -T sidekiq bundle exec rails runner "${sidekiq_check}"
 
-feature_configuration_check='begin; minimum = Integer(ENV.fetch("DF_PPI_MINIMUM_COHORT_SIZE"), 10); stale_after = Integer(ENV.fetch("DF_PPI_STALE_AFTER_HOURS"), 10); rescue KeyError, ArgumentError; abort "PPI configuration is missing or invalid"; end; abort "PPI configuration is outside the approved production bounds" unless minimum >= 21 && stale_after.between?(1, 48); vapid_keys = %w[DOUBTFIRE_VAPID_PUBLIC_KEY DOUBTFIRE_VAPID_PRIVATE_KEY DOUBTFIRE_VAPID_SUBJECT]; abort "VAPID configuration is missing" unless vapid_keys.all? { |key| !ENV[key].to_s.empty? }; abort "Web Push is not configured" unless PushNotificationService.configured?'
+feature_configuration_check='begin; minimum = Integer(ENV.fetch("DF_PPI_MINIMUM_COHORT_SIZE"), 10); stale_after = Integer(ENV.fetch("DF_PPI_STALE_AFTER_HOURS"), 10); rescue KeyError, ArgumentError; abort "PPI configuration is missing or invalid"; end; api_floor = PeerProgressApi::MINIMUM_SAFE_COHORT_SIZE; abort "PPI configuration is below the API privacy floor" unless minimum >= 21 && minimum >= api_floor; abort "PPI freshness configuration is outside the approved production bounds" unless stale_after.between?(1, 48); vapid_keys = %w[DOUBTFIRE_VAPID_PUBLIC_KEY DOUBTFIRE_VAPID_PRIVATE_KEY DOUBTFIRE_VAPID_SUBJECT]; abort "VAPID configuration is missing" unless vapid_keys.all? { |key| !ENV[key].to_s.empty? }; abort "Web Push is not configured" unless PushNotificationService.configured?'
 for service_name in apiserver sidekiq; do
   run_compose_check \
     "live VAPID/PPI configuration for ${service_name}" \
@@ -191,7 +191,7 @@ MANUAL GATES STILL REQUIRED BEFORE ACCEPTANCE:
 - MANUAL-IDP: complete a real production identity-provider login and logout.
 - MANUAL-SMTP: trigger a notification and confirm receipt through the approved SMTP service.
 - MANUAL-PUSH: opt in on each supported real browser/device, receive a push in the background, and follow its link.
-- MANUAL-PPI: verify fresh and suppressed student views in an approved unit without recording student-level data.
+- MANUAL-PPI: verify compact and advanced fresh peer-only views, the default-on profile preference, and remaining-peer/legacy/viewer-stale/vector-suppressed views without recording student-level data.
 - MANUAL-PDF-JPLAG: generate a PDF and complete an approved JPlag check.
 - MANUAL-SCORM: use a disposable launch token to verify no-referrer and all edge/API/observability log controls, then revoke it.
 - MANUAL-RECOVERY: prove the current backup can be restored and the release can be rolled back under the runbook.

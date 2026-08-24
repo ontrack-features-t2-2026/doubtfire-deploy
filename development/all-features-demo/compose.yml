@@ -6,6 +6,12 @@
 
 x-all-features-demo-environment: &all-features-demo-environment
   DF_DEMO_DATA_PROFILE: all-features
+  # Keep the disposable demo on the same fail-closed PPI policy as the checked
+  # in production example. The cohort floor counts remaining peers after the
+  # authenticated reader is excluded. These values are repeated deliberately
+  # so the demo cannot become less private if the general stack changes.
+  DF_PPI_MINIMUM_COHORT_SIZE: "21"
+  DF_PPI_STALE_AFTER_HOURS: "48"
   DF_DEV_DB_DATABASE: doubtfire-all-features-demo
   DF_TEST_DB_DATABASE: doubtfire-all-features-demo-test
   DF_PRODUCTION_DB_DATABASE: doubtfire-all-features-demo
@@ -37,6 +43,12 @@ services:
 
   mailpit:
     container_name: all-features-demo-mailpit
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 2s
 
   doubtfire-api:
     container_name: all-features-demo-api
@@ -55,6 +67,12 @@ services:
         condition: service_started
       mailpit:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:3000/readiness"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 20s
 
   doubtfire-sidekiq:
     container_name: all-features-demo-sidekiq
@@ -82,6 +100,23 @@ services:
       - ${DF_DEMO_WEB_PATH:-../../doubtfire-web}:/doubtfire-web
       - all_features_demo_web_node_modules:/doubtfire-web/node_modules
       - ./proxy.conf.docker.json:/doubtfire-web/proxy.conf.json:ro
+    depends_on: !override
+      doubtfire-api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:4200').then(
+            response => process.exit(response.ok ? 0 : 1),
+            () => process.exit(1)
+          )
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
 
 volumes:
   all_features_demo_db_data:

@@ -17,8 +17,8 @@ secrets, storage, monitoring, backup, privacy, and browser/device acceptance.
 | Component | Release branch | Pinned revision |
 | --- | --- | --- |
 | Deploy and handover | `integration/deploy-all-features-foundation-20260824` | Protected signed release tag; record the resolved commit externally |
-| API and Sidekiq | `integration/11.0.x-all-features-20260824` | `b4e35ab5a0075676111aa05037e92faab3077dff` |
-| Web application | `integration/11.0.x-all-features-20260824` | `6e014cb3d487b4221e1886cd1dab3624bfddbaf3` |
+| API and Sidekiq | `integration/11.0.x-all-features-20260824` | `d285c134deba1f6aad9b868ce753d9ccd8ef2247` |
+| Web application | `integration/11.0.x-all-features-20260824` | `cf0ef3396cd07791301f898ee285dd26d06d97b3` |
 
 A Git commit cannot contain its own final hash. After the accepted deploy commit
 is tagged under the protected release policy, resolve that signed tag to a
@@ -65,9 +65,12 @@ Mailpit, synthetic PPI data, push preview behaviour, and `DF_DEMO_DATA_PROFILE`
 are never production configuration.
 
 Some demonstration views intentionally use labelled synthetic data where no
-equivalent production API exists. PPI task percentages in production are live
-aggregates and fail closed below the configured privacy cohort. Treat the demo
-as a walkthrough and test fixture, not as production acceptance evidence.
+equivalent production API exists. PPI compact completion and advanced status
+percentages in production are live aggregates. They fail closed below the
+configured remaining-peer cohort after excluding the reader, and the advanced
+vector has an additional ambiguity guard. Legacy or viewer-stale snapshots also
+fail closed until reaggregation. Treat the demo as a walkthrough and test
+fixture, not as production acceptance evidence.
 
 ## Receiving-team ownership
 
@@ -99,9 +102,9 @@ Maintenance window and timezone:
 Approved release version:
 Deploy Git revision:
 Deploy signed release ref:
-API Git revision: b4e35ab5a0075676111aa05037e92faab3077dff
+API Git revision: d285c134deba1f6aad9b868ce753d9ccd8ef2247
 API signed release ref:
-Web Git revision: 6e014cb3d487b4221e1886cd1dab3624bfddbaf3
+Web Git revision: cf0ef3396cd07791301f898ee285dd26d06d97b3
 Web signed release ref:
 Release-ref signature verification evidence:
 API image digest:
@@ -229,8 +232,12 @@ An automated green result is necessary but not sufficient. Complete every
       cannot retrieve task definitions or recommendation data outside their
       authorised units.
 - [ ] Enable PPI only for one privacy-approved test unit, queue the first
-      aggregation, verify snapshot freshness, verify eligible output, and verify
-      sub-threshold output is suppressed without identifiers or raw counts.
+      aggregation, and verify snapshot freshness. Check the compact and advanced
+      indicator below the submission area, representative redo/resubmit states,
+      the default-on profile preference and its off switch, eligible output,
+      remaining-peer sub-threshold suppression, legacy/viewer-stale snapshot
+      suppression, and advanced-vector suppression without identifiers, cohort
+      size, or raw counts.
 - [ ] Trigger immediate and scheduled email paths through Sidekiq; verify the
       approved sender, links, SMTP delivery, failure alerting, and no duplicate
       delivery on retry.
@@ -296,8 +303,9 @@ revisions:
 
 ```bash
 development/all-features-demo/demo.sh config
-development/all-features-demo/demo.sh start
-development/all-features-demo/demo.sh seed
+development/all-features-demo/demo.sh sources
+development/all-features-demo/demo.sh prepare
+development/all-features-demo/demo.sh verify
 development/all-features-demo/demo.sh status
 ```
 

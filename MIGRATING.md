@@ -5,7 +5,7 @@
 ## OnTrack 11.0.x combined all-features release (24 August 2026)
 
 This dossier applies only to the API revision pinned in `HANDOVER.md`. The
-expected final Rails schema version is `20260824000002`; `production/verify.sh`
+expected final Rails schema version is `20260824000003`; `production/verify.sh`
 fails if the running database does not match it. Re-audit this matrix if the API
 revision or migration set changes.
 
@@ -35,6 +35,7 @@ or run any demo seed task against production.
 | `20260818160804` | Adds `projects.target_grade_changed_at`, backfills every existing project to migration time, retains a database current-time default, then enforces not null. | The bulk update may lock or generate substantial redo on a large `projects` table. The retained default protects older writers. Reversal loses freshness history and requires new PPI aggregation after re-upgrade. |
 | `20260824000001` | Adds task-notification tracking/default/index plus notification dedupe key, delivery timestamp and unique user/dedupe index. | Alters `task_definitions` and `notifications`. Additive to old readers. Reversal loses dedupe/delivery state and can cause duplicate mail after re-upgrade. |
 | `20260824000002` | Repairs/retains the database default for `projects.target_grade_changed_at` on installations that previously recorded an older form of the preceding migration. | Idempotent metadata repair with no row backfill. Its down path intentionally preserves the compatibility default. |
+| `20260824000003` | Adds nullable, internal `peer_progress_snapshots.submitted_count` and `peer_progress_snapshots.status_counts` JSON, plus `users.display_peer_progress` with database default `true` and `NOT NULL`. Exact counts let the student API subtract the authenticated reader before privacy thresholding and quantisation. Existing snapshots keep their legacy stored percentage for older readers, but the new API deliberately withholds compact and detailed output until reaggregation fills both exact fields. Existing and future users start with the requested display preference enabled and may persist `false` through Profile. | Additive for old readers/writers, but the `users` alter/default backfill may lock a large table and must be measured. Reaggregate every approved PPI unit before acceptance. Prefer keeping the forward schema during application rollback. Reversal removes peer-only aggregate inputs and erases every explicit user opt-out, so re-upgrade would default those users on again unless the preference is separately restored. |
 
 No migration intentionally deletes an existing pre-release application table or
 column. Database reversal is nevertheless not the preferred application
@@ -56,7 +57,9 @@ isolated host using `DEPLOYING.md`, then record:
 - counts before/after the project timestamp backfill and confirmation that no
   resulting value is null;
 - confirmation that existing units remain PPI-disabled, notification dedupe
-  indexes are valid, and no synthetic/demo records were introduced;
+  indexes are valid, no user has a null PPI display preference, the new API
+  suppresses legacy snapshots whose exact count fields are still null, and no
+  synthetic/demo records were introduced;
 - `rails db:abort_if_pending_migrations`, `production/verify.sh`, and application
   smoke-test results; and
 - whether the measured outage fits the institution's approved maintenance
@@ -70,9 +73,10 @@ gate.
 Immediately before migration, create the consistent database/student-work
 recovery set described in `DEPLOYING.md`, verify its checksums and restore-test
 record, drain traffic, and check for pending/long-running database work. After
-migration, require schema `20260824000002`, inspect Sidekiq queues/retries, queue
-the first PPI aggregation only for an approved unit, and complete every manual
-gate in `HANDOVER.md`.
+migration, require schema `20260824000003`, inspect Sidekiq queues/retries, queue
+the first PPI aggregation only for an approved unit, verify its exact aggregate
+fields are populated without printing them, and complete every manual gate in
+`HANDOVER.md`.
 
 ## Version 5 to Version 6
 

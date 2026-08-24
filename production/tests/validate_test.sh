@@ -352,7 +352,8 @@ for required_source in \
   '/ngsw-worker.js' \
   'http://127.0.0.1:3000/readiness' \
   'db:abort_if_pending_migrations' \
-  '20260824000002' \
+  '20260824000003' \
+  'ActiveRecord::Base.connection_pool.migration_context.current_version' \
   'Sidekiq::ProcessSet' \
   'aggregate_peer_progress' \
   'poll_communication_set_schedules' \
@@ -361,6 +362,7 @@ for required_source in \
   'DF_SIDEKIQ_CONCURRENCY' \
   'process["concurrency"].to_i == configured_concurrency' \
   'DF_PPI_MINIMUM_COHORT_SIZE' \
+  'PeerProgressApi::MINIMUM_SAFE_COHORT_SIZE' \
   'DOUBTFIRE_VAPID_PRIVATE_KEY' \
   'MANUAL GATES STILL REQUIRED'; do
   grep -Fq "${required_source}" "${verify_script}" || {
@@ -368,6 +370,13 @@ for required_source in \
     exit 1
   }
 done
+grep -Fq 'expected final Rails schema version is `20260824000003`' \
+  "${REPOSITORY_DIR}/MIGRATING.md"
+grep -Fq '| `20260824000003` |' "${REPOSITORY_DIR}/MIGRATING.md"
+grep -Fq 'peer_progress_snapshots.submitted_count' "${REPOSITORY_DIR}/MIGRATING.md"
+grep -Fq 'new API deliberately withholds compact and detailed output until reaggregation' \
+  "${REPOSITORY_DIR}/MIGRATING.md"
+printf 'ok - migration dossier matches the release schema gate\n'
 grep -Fq 'DOUBTFIRE_CONFIG_ONLY=0 "${SCRIPT_DIR}/validate.sh" "${ENV_FILE}"' "${verify_script}"
 if grep -Eq 'printenv|docker (container )?inspect.*Env' "${verify_script}"; then
   printf 'verify.sh must not print container environments.\n' >&2

@@ -130,6 +130,31 @@ zero, negative, non-integer, and values above 48 are rejected. The API also
 fails closed rather than returning peer percentages if either setting is
 missing or invalid.
 
+The threshold is the number of remaining peers after the authenticated
+student's known contribution has been removed from the exact internal
+aggregate. A configured floor of 21 therefore requires at least 22 eligible
+students in the target-grade band, including the reader. The same peer-only
+threshold protects both the compact completion view and the advanced
+task-status distribution. The submitted percentage remains an additive wire
+compatibility metric for rolling API/web upgrades; it is not the primary
+compact meaning.
+
+The API must fail closed unless the snapshot contains the exact internal
+submitted and status counts needed to subtract the reader. It also fails closed
+if the reader's project membership or task changed after aggregation, rather
+than subtracting a stale known contribution. Advanced percentages are released only when the API's
+whole-vector ambiguity check confirms that every displayed peer status still
+has multiple feasible raw counts, even if an observer already knows the peer
+cohort size. Otherwise the entire distribution is unavailable; never weaken
+the cohort setting or bypass that guard to fill the advanced display. Neither
+view may expose peer identities, project records, marks, raw cohort size, or raw
+submitted/status counts.
+
+Each released status is rounded into its own privacy bucket. The displayed
+percentages may therefore total slightly above or below 100%; neither the API
+nor the client may renormalise them, because doing so would change the reviewed
+privacy mapping and can reveal extra information.
+
 Configuration does not opt units in. `units.peer_progress_enabled` defaults to
 false and an authorised convenor must explicitly enable Peer Progress for each
 approved unit. Start with a populated test unit, confirm the cohort policy with
@@ -354,14 +379,30 @@ that a fresh snapshot exists without printing student-level data:
 ./compose.sh exec sidekiq bundle exec rails runner \
   'abort "Peer Progress schedule missing" unless Sidekiq::Cron::Job.find("aggregate_peer_progress"); puts "Peer Progress schedule loaded"'
 ./compose.sh exec apiserver bundle exec rails runner \
-  'unit = Unit.find_by!(code: "UNIT_CODE"); calculated_at = unit.peer_progress_snapshots.maximum(:calculated_at); abort "No Peer Progress snapshot" unless calculated_at; abort "Peer Progress snapshot is stale" if calculated_at < ENV.fetch("DF_PPI_STALE_AFTER_HOURS").to_i.hours.ago; puts "Fresh Peer Progress snapshot present"'
+  'unit = Unit.find_by!(code: "UNIT_CODE"); snapshot = unit.peer_progress_snapshots.order(calculated_at: :desc).first; abort "No Peer Progress snapshot" unless snapshot; abort "Peer Progress exact aggregates are incomplete" if snapshot.submitted_count.nil? || snapshot.status_counts.nil?; abort "Peer Progress snapshot is stale" if snapshot.calculated_at < ENV.fetch("DF_PPI_STALE_AFTER_HOURS").to_i.hours.ago; puts "Fresh Peer Progress snapshot with exact peer-only inputs present"'
 ```
 
 Sign in as a student in that test unit and inspect the Peer Progress response and
-display. Confirm that an eligible cohort shows only the approved percentage and
-state fields, while a cohort below the configured threshold (which can never be
-lower than 21) is suppressed and never exposes names, identifiers, peer project
-records, marks, raw statuses, or raw cohort counts.
+display. Confirm that the indicator appears below the task submission area, the
+compact view is the initial task view, and its small advanced control reveals
+the quantised canonical status distribution. Exercise representative statuses,
+including redo and fix-and-resubmit. Confirm the profile preference is on for a
+new student and that switching it off removes peer progress without affecting
+submission controls.
+
+For an eligible remaining-peer cohort, the response may contain only approved state fields,
+the quantised completed percentage, the additive submitted compatibility
+percentage, and (when its independent ambiguity guard passes) the quantised
+`status_distribution`. Confirm that a cohort below the configured threshold
+(which can never be lower than 21 peers after excluding the reader) suppresses
+all peer percentages. Confirm that a legacy snapshot without exact submitted
+and status counts, and a snapshot older than the reader's current project/task
+context, also fail closed until aggregation refreshes them. Separately
+exercise a cohort whose detailed vector is withheld by the vector privacy guard:
+the compact view may remain available, but advanced data must fail closed with a
+non-sensitive explanation and useful navigation or retry choices. No response
+or display may expose names, identifiers, peer project records, marks, raw
+cohort size, or raw status counts.
 
 Web Push acceptance requires a real supported browser and cannot be replaced by
 Compose health checks. Over HTTPS, sign in and confirm `/ngsw.json` loads and the
