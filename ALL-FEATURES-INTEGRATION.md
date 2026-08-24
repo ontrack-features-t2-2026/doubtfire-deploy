@@ -199,7 +199,10 @@ not hidden merge failures:
   reviewable follow-up that completes it; they are not yet in the locked
   gitlinks. Web PR #82 depends on the web #72 → #80 chain.
 - Future-dated, rollover, copied, and import-created task notifications remain
-  outside the first EN implementation.
+  outside the pinned first EN implementation. Green API PR #65 covers those
+  paths, including target-grade and student-specific effective start dates,
+  but is not in this lock, the current release base, or the pinned demo. It
+  requires two approvals and a fresh combined validation after integration.
 - The inherited web dependency graph still reports 14 audit findings: three
   low, five moderate, five high, and one critical. This integration did not
   change or claim to resolve them.
