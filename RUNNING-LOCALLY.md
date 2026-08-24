@@ -50,11 +50,20 @@ does not go there.
 
 ## Combined all-features 11.0.x
 
-Use `integration/11.0.x-all-features-20260824` in all three sibling repositories:
+The original frozen lock uses `integration/11.0.x-all-features-20260824` in all
+three sibling repositories:
 
 - **doubtfire-deploy**: `integration/11.0.x-all-features-20260824`
 - **doubtfire-api**: `integration/11.0.x-all-features-20260824`
 - **doubtfire-web**: `integration/11.0.x-all-features-20260824`
+
+For the current validated local follow-up demo in this workspace, use API branch
+`demo/all-features-followups-20260824` at exact revision
+`64b27f906ca63f4979e6f849c92caec8d7ca75ee` instead. The local-path Compose file
+runs the sibling checkout, so rebuild the API and worker after selecting it.
+This local coordination revision includes API PR #65 and an asynchronous-mail
+test adjustment; it is not the frozen API umbrella or release base. A fresh
+clone should use the published lock until a refreshed umbrella is available.
 
 This is the singular local CPD, PPI, Email Notifications, and Mobile Notifications
 integration. Do not mix it with the older individual feature branches. The api and web

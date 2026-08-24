@@ -18,6 +18,14 @@ while the development Compose overlay runs those sibling working trees.
 | `doubtfire-api` | `2f945c71203a47f8777ad158966a2cdff765109a` |
 | `doubtfire-web` | `36be84f30d80c237e97a0f15b607ec0b1b3a4b57` |
 
+The table above remains the original deploy gitlink/frozen-lock record. The
+current validated local follow-up demo instead checks out API branch
+`demo/all-features-followups-20260824` at
+`64b27f906ca63f4979e6f849c92caec8d7ca75ee` in the sibling API repository. That
+revision includes API PR #65 integration plus an asynchronous-mail test
+adjustment. It does not move the deploy gitlink, frozen API umbrella, shared
+`feature/notifications` branch, or release base.
+
 These revisions were local when this validation lock was recorded. Their
 publication and PR status is tracked in `ALL-FEATURES-PR-FOLLOWUPS.md`. A fresh
 clone must not run `git submodule update` until both locked component commits
@@ -198,11 +206,11 @@ not hidden merge failures:
   placeholder recommendation logic. API PR #61 and web PR #82 are the
   reviewable follow-up that completes it; they are not yet in the locked
   gitlinks. Web PR #82 depends on the web #72 → #80 chain.
-- Future-dated, rollover, copied, and import-created task notifications remain
-  outside the pinned first EN implementation. Green API PR #65 covers those
-  paths, including target-grade and student-specific effective start dates,
-  but is not in this lock, the current release base, or the pinned demo. It
-  requires two approvals and a fresh combined validation after integration.
+- Future-dated, rollover, copied, and import-created task notifications were
+  outside the original first EN lock. The validated local follow-up demo now
+  covers those paths—including target-grade and student-specific effective
+  start dates—at API `64b27f90`. API PR #65 remains open and requires two
+  approvals; neither the frozen API umbrella nor release base includes it yet.
 - The inherited web dependency graph still reports 14 audit findings: three
   low, five moderate, five high, and one critical. This integration did not
   change or claim to resolve them.

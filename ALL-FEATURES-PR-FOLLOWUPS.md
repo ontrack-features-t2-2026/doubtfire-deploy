@@ -6,7 +6,7 @@ into reviewable pull requests. GitHub Issues are disabled in these repositories,
 so [deploy PR #12](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/12)
 and this file are the canonical tracker.
 
-GitHub state was refreshed at `2026-08-24T00:08:25Z`. Check states are a
+GitHub state was refreshed at `2026-08-24T00:45:26Z`. Check states are a
 snapshot and must be rechecked immediately before merging. `BLOCKED` usually
 means the repository ruleset is waiting for review; it does not imply a failing
 test unless a failure is called out below.
@@ -24,8 +24,9 @@ draft and merge the focused PRs into their natural feature branches.
    [API #65](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/65)
    before promoting that feature branch to `11.0.x`. PR #65 changes a migration,
    schema, configuration, and `NotificationService`, so obtain its required two
-   approvals and rerun the shared feature-branch checks. It is not in the
-   current release base or pinned demo.
+   approvals and rerun the shared feature-branch checks. It is included in the
+   validated local demo API revision `64b27f906ca63f4979e6f849c92caec8d7ca75ee`,
+   but not in the release base or frozen API umbrella.
 3. For CPD recommendations, the review dependency was
    [API #59](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/59)
    -> [API #61](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/61)
@@ -83,7 +84,7 @@ reviewed and merged.
 | [#54](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/54) — deployment metadata IDs | Open, ready, `BLOCKED`; 6/6 passing | Independent `11.0.x` workflow repair. |
 | [#56](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/56) — notification group email link | Open, ready, `BLOCKED`; 6/6 passing | Merge into `feature/notifications`. |
 | [#57](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/57) — notification settings isolation | Open, ready, `BLOCKED`; 6/6 passing | Merge into `feature/notifications`. |
-| [#65](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/65) — `email/task-availability-paths` at `cdbb20897963` -> `feature/notifications` | Open, ready, mergeable, `BLOCKED`; 5/5 checks passing | Covers future-dated, CSV-imported, rollover-created, copied, target-grade, and student-specific availability paths. Requires two approvals. Merge before notification promotion, then refresh/retest the umbrella and pinned demo. |
+| [#65](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/65) — `email/task-availability-paths` at `cdbb20897963` -> `feature/notifications` | Open, ready, mergeable, `BLOCKED`; 5/5 checks passing | Covers future-dated, CSV-imported, rollover-created, copied, target-grade, and student-specific availability paths. Included in the validated local demo at API `64b27f90`; still requires two approvals and merge into the feature/release path. |
 | [#60](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/60) — combined API umbrella at `7f912987d489` | Open draft, `BLOCKED`; 7/7 passing | Coordination/final-validation only; it now includes merged demo-cohort PR #64. |
 | [#63](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/63) — production runtime hardening | Open, ready, `BLOCKED`; 4/4 checks passing | Separate production-readiness review, not part of the locked demo. |
 
@@ -133,10 +134,14 @@ their large histories are not the preferred review diffs:
 | Web | [#81](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/81) at `36be84f30d80` | Draft; 10/10 checks passing and matches the deploy gitlink. |
 | Deploy | [#12](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/12) | Open top-level integration; no status check is configured on its latest merge commit. |
 
-The locked API/web revisions do not yet contain the final CPD recommendation
-work now nested in API #59 and web #72, or the notification availability work
-in API #65. After those PRs are accepted, refresh the coordination heads and
-deploy gitlinks, then rerun the lock validation.
+The frozen API umbrella #60 and deploy gitlink do not yet contain the final CPD
+recommendation work now nested in API #59/web #72 or the notification
+availability work in API #65. The separately validated local demo uses API
+`64b27f906ca63f4979e6f849c92caec8d7ca75ee`, which includes #65 integration and
+an asynchronous-mail test adjustment. That local validation does not merge #65
+into `feature/notifications`, the release base, or frozen umbrella. After the
+required PRs are accepted, refresh the published umbrella and deploy gitlinks,
+then rerun the release lock validation.
 
 ## Validation already recorded
 
@@ -156,6 +161,13 @@ deploy gitlinks, then rerun the lock validation.
   runs/176 assertions, 4 import/rollover integration runs/20 assertions, and
   149 broader notification runs/715 assertions with no failures or errors;
   336-file RuboCop passed with no offences.
+- Validated local API repin `64b27f906ca63f4979e6f849c92caec8d7ca75ee`:
+  the notification migration was applied; the task-definition start marker,
+  notification dedupe/delivery columns, and unique index were present; Sidekiq
+  listed all nine scheduled jobs including task-availability delivery. Web and
+  Mailpit returned HTTP 200, the unauthenticated API settings probe returned
+  the expected HTTP 419, and browser sign-in showed all four seeded units and
+  notifications.
 - Web #85 regression proof before publication: 63 test files completed with
   148 passing tests and 1 existing todo; type-check, lint, formatting, and
   whitespace checks passed.
@@ -183,10 +195,11 @@ deploy gitlinks, then rerun the lock validation.
 - A real browser push registration cannot be automated from GitHub or silently
   granted by application code. The user must allow notifications for the local
   site and trigger registration from the UI.
-- The current pinned demo still excludes future-dated, imported, rollover,
-  copied, target-grade, and student-specific task-availability notifications.
-  Green API #65 covers those paths, but is not part of the release base or demo
-  until approved, merged, pinned, and revalidated.
+- The validated local demo now includes future-dated, imported, rollover,
+  copied, target-grade, and student-specific task-availability notifications at
+  API `64b27f90`. The frozen API umbrella, deploy gitlink, and release base still
+  exclude them until API #65 receives two approvals and is merged through the
+  feature/release path.
 
 ## Remaining follow-up checklist
 
@@ -206,8 +219,10 @@ deploy gitlinks, then rerun the lock validation.
       #72. Their child PRs #61, #84, and #85 are already nested within them.
 - [ ] Obtain two approvals for API #65, merge it into `feature/notifications`,
       and rerun the notification feature-branch checks.
-- [ ] Add merged API #65 to the API umbrella and pinned demo, then repeat the
-      notification availability and combined smoke tests.
+- [x] Repin and verify the local combined demo at API `64b27f90`, including
+      migration, scheduler, service, browser, and notification smoke checks.
+- [ ] After #65 merges, add it to the frozen API umbrella and deploy gitlink,
+      then repeat the release-lock validation.
 - [ ] Coordinate deploy #11 with the API #62 privacy-floor rollout.
 - [ ] Refresh umbrella heads and deploy gitlinks after the focused PRs land.
 - [ ] Repeat the final Compose, browser, notification-email, CPD, and PPI smoke
