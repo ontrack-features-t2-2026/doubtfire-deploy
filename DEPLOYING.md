@@ -164,8 +164,8 @@ matching VAPID private key cannot deliver to its saved subscriptions.
 Allow outbound TCP 443 from API and Sidekiq to the endpoint hosts issued by the
 supported browsers. The current application allowlist includes
 `fcm.googleapis.com`, `android.googleapis.com`,
-`updates.push.services.mozilla.com`, `web.push.apple.com`, subdomains of
-`push.services.microsoft.com`, and subdomains of `notify.windows.com`. Review
+`updates.push.services.mozilla.com`, subdomains of `push.apple.com`, subdomains
+of `push.services.microsoft.com`, and subdomains of `notify.windows.com`. Review
 captured subscription endpoint hosts whenever the supported browser matrix
 changes; do not assume browser vendors will keep endpoints static.
 
