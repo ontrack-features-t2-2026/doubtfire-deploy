@@ -1,0 +1,44 @@
+name: Required CI
+
+on:
+  pull_request: {}
+  push:
+    branches:
+      - 11.0.x
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Reject whitespace errors
+        run: git diff --check
+
+      - name: Check shell syntax
+        run: git ls-files -z '*.sh' | xargs -0 -n1 bash -n
+
+      - name: Validate development Compose configurations
+        run: |
+          docker compose -f development/docker-compose.yml config --quiet
+          docker compose -f development/docker-compose.yml -f development/docker-compose.full.yml config --quiet
+          docker compose -f development/docker-compose.yml -f development/docker-compose.local-paths.yml config --quiet
+          docker compose -f development/docker-compose.yml -f development/docker-compose.podman.yml config --quiet
+
+      - name: Validate dev-container Compose configuration
+        run: docker compose -f .devcontainer/docker-compose.yml config --quiet
+
+      - name: Validate production Compose configuration
+        run: docker compose -f production/docker-compose.yml config --quiet
