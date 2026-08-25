@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   validate:
-    name: validate
+    name: deploy-validation
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
