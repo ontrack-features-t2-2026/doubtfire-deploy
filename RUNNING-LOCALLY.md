@@ -6,7 +6,7 @@ to fix them.
 ## What runs
 
 - doubtfire-api: the backend (Rails). Port 3000.
-- doubtfire-sidekiq: the background worker that processes queued jobs from Redis.
+- doubtfire-sidekiq: the background worker for queued notification email. See below.
 - doubtfire-web: the frontend (Angular). Port 4200.
 - Mailpit: catches every email the app sends. Web inbox on port 8025.
 - A database (MariaDB) and Redis. Docker starts these for you.
@@ -133,21 +133,30 @@ nothing, so you can safely put your own address on a test account.
 - Web inbox: http://localhost:8025
 - The api sends to it over SMTP on port 1025 inside Docker.
 
-Notification email is queued in Redis instead of sent on the api request path. The
-`doubtfire-sidekiq` service reads that queue and delivers the email to Mailpit. The normal
-`up` command starts the worker.
+The `doubtfire-sidekiq` service is there to take notification email off the api request
+path. It reads the `mailers` queue in Redis and delivers what it finds to Mailpit. The
+normal `up` command starts it.
+
+**The api still sends notification email inline.** So the queue is empty and the worker has
+nothing to do yet. That changes when api PR #43 merges, which is the change that puts the
+email on the queue. Until then the worker being up or down makes no difference to your
+inbox.
+
+The worker only listens on the `mailers` queue, so it does not run the rest of the
+background jobs. That is on purpose. Several of them need a LaTeX container this stack does
+not have, and a worker that picked those up would fail every task submission and push the
+task back to "fix".
 
 Check the worker and its recent job output:
 
     docker compose -f docker-compose.yml -f docker-compose.local-paths.yml ps doubtfire-sidekiq
     docker compose -f docker-compose.yml -f docker-compose.local-paths.yml logs --tail 100 doubtfire-sidekiq
 
-Stopping the worker does not lose already queued notification email. Starting it again
-processes the pending work:
+Once delivery is queued, stopping the worker does not lose notification email. Starting it
+again processes the pending work:
 
     docker compose -f docker-compose.yml -f docker-compose.local-paths.yml stop doubtfire-sidekiq
     docker compose -f docker-compose.yml -f docker-compose.local-paths.yml start doubtfire-sidekiq
-
 
 If the inbox stays empty:
 
@@ -452,8 +461,10 @@ Verified against `ppi/student-progress-endpoint` @ 62ee2982.
 older than this is returned as stale, and the response withholds the
 percentage entirely rather than returning an old one.
 
-The local Compose stack starts Redis, but it does not start a Sidekiq worker.
-To test PPI locally, first list the active unit IDs:
+The local Compose stack starts Redis and a Sidekiq worker, but the worker
+only listens on the `mailers` queue, so it does not pick up
+`AggregatePeerProgressJob`. Run that job by hand. To test PPI locally, first
+list the active unit IDs:
 
 ```bash
 docker exec doubtfire-api bundle exec rails runner \
