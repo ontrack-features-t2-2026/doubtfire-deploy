@@ -22,6 +22,13 @@ services:
       DF_TEST_DB_USERNAME: dfire
       DF_TEST_DB_PASSWORD: pwd
 
+  doubtfire-sidekiq:
+    build: ../../doubtfire-api
+    volumes:
+      - ../../doubtfire-api/:/doubtfire
+      - ../data/tmp:/doubtfire/tmp
+      - ../data/student-work:/student-work
+
   doubtfire-web:
     build: ../../doubtfire-web
     # (1) Base compose runs `npm run start-compose`, but 11.0.x renamed it to `start`.
