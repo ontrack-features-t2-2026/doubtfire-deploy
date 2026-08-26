@@ -41,6 +41,8 @@ The setups to configure these components include:
     - Add monitoring as needed to ensure ongoing operation
 4. Adjust **.env.production**:
    - **DF_PRODUCTION_DB_*** settings - adjust database settings for adapter type, host name, database name, and password. The provided setting work with the database setup in the compose file. The password should be updates as a minimum.
+   - **DF_PPI_MINIMUM_COHORT_SIZE** - keep the approved minimum cohort size of `21`, or raise it to a stricter value. Do not lower it. The API withholds peer progress for cohorts below this value; an enabled unit with an eligible snapshot returns 503 when the setting is missing or invalid.
+   - **DF_PPI_STALE_AFTER_HOURS** - keep the approved maximum snapshot age of `48` hours unless a stricter value is required. The API withholds peer percentages from older snapshots; an enabled unit with an eligible snapshot returns 503 when the setting is missing or invalid.
    - **DF_SECRET_KEY_DEVISE** - contains the key used to encrypt the [Devise](https://github.com/heartcombo/devise) user data in the database. Keys can be generated with `bundle exec rake secret` run in the *apiserver* container.
    - **DF_SECRET_KEY_BASE** and **DF_SECRET_KEY_ATTR** - these are historic keys used to encrypt data in the database. Generate as with the Devise key.
    - **DF_SECRET_KEY_MOSS** - the key used to connect with the [MOSS](http://moss.stanford.edu) system for checking code similarity.
@@ -99,4 +101,3 @@ The setups to configure these components include:
       ```
 
     When successful you should be able to login as the admin user.
-
