@@ -27,6 +27,16 @@ services:
     image: redis:7.0
     volumes:
       - redis_sidekiq_data:/data
+    # doubtfire-sidekiq is gated on this. A plain depends_on only waits for the
+    # container to exist, not for Redis to accept a connection, and a worker
+    # that loses that race is down for the rest of the session with nothing in
+    # the api log to say so.
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
 
   # Mail catcher. Accepts every email the app sends and shows it in a web inbox
   # at http://localhost:8025. Nothing is delivered to the outside world.
@@ -53,8 +63,9 @@ services:
       - ../data/student-work:/student-work
     depends_on:
       - dev-db
+      - redis-sidekiq
       - mailpit
-    environment:
+    environment: &doubtfire-api-environment
       RAILS_ENV: 'development'
 
       # Mail catcher. Setting DF_SMTP_ADDRESS is what switches the api from
@@ -129,6 +140,53 @@ services:
 
       # Redis
       DF_REDIS_SIDEKIQ_URL: redis://df-compose-redis-sidekiq:6379/0
+
+  doubtfire-sidekiq:
+    container_name: doubtfire-sidekiq
+    image: lmsdoubtfire/doubtfire-api:8.0.x-dev
+    build: ../doubtfire-api
+    # Deliberately narrow. Nothing in the api sets a queue, so all thirty-odd
+    # perform_async calls land on `default`. Taking `default` here would run
+    # AcceptSubmissionJob, which is enqueued on every task submission and calls
+    # convert_submission_to_pdf, which raises "LATEX_CONTAINER_NAME is not set"
+    # because development/ has no texlive service the way production/ does. The
+    # task would drop to "fix" with an automated comment on it, so submissions
+    # would break for everyone not working on notifications. Left unread in
+    # Redis, the way they are today, those jobs are harmless.
+    #
+    # `default` needs a texlive service and LATEX_CONTAINER_NAME first, or the
+    # jobs that need one need a queue of their own. Until then anything we do
+    # want run here has to name `mailers`, the config/schedule.yml cron entries
+    # included: this worker registers them at startup and they enqueue on
+    # `default`, so they are scheduled but not run.
+    #
+    # `-q` is set here and not in config/sidekiq.yml because that file lives in
+    # doubtfire-api, which this repo cannot keep in step. The config file is
+    # still read for :concurrency and the command line wins over it.
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml", "-q", "mailers"]
+    volumes:
+      - ../doubtfire-api/:/doubtfire
+      - ../data/tmp:/doubtfire/tmp
+      - ../data/student-work:/student-work
+    # Same policy the sidekiq service in production/docker-compose.yml uses.
+    # A worker that died on a transient Redis or database hiccup is invisible.
+    # The rest of the stack still looks up and email just stops.
+    restart: on-failure:5
+    depends_on:
+      dev-db:
+        condition: service_started
+      redis-sidekiq:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      <<: *doubtfire-api-environment
+      DF_LOG_TO_STDOUT: '1'
+      # This is the process that evaluates config/schedule.yml. Three of its
+      # seven entries name a wall-clock time (5am, 8am, 11:55pm), so an unset
+      # TZ would run those on the image default of UTC and put them hours out.
+      # Same value as development/api.env.
+      TZ: Australia/Melbourne
 
   doubtfire-web:
     container_name: doubtfire-web
