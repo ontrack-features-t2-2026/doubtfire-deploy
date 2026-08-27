@@ -75,22 +75,37 @@ docker compose -p notifications-demo \
   -f docker-compose.local-paths.yml \
   config --quiet
 
-# Start the combined stack. Build again after changing API/web revisions.
+# Build the selected application revisions.
 docker compose -p notifications-demo \
   -f docker-compose.yml \
   -f docker-compose.local-paths.yml \
-  up -d --build
+  build doubtfire-api doubtfire-sidekiq doubtfire-web
 
-# Populate a fresh demo database once.
+# Start only infrastructure, then populate while API/worker readers are stopped.
 docker compose -p notifications-demo \
   -f docker-compose.yml \
   -f docker-compose.local-paths.yml \
-  run --rm doubtfire-api \
+  up -d --wait dev-db redis-sidekiq mailpit
+
+docker compose -p notifications-demo \
+  -f docker-compose.yml \
+  -f docker-compose.local-paths.yml \
+  run --rm --no-deps doubtfire-api \
   bash -c "bundle exec rake db:populate"
+
+# Start the application only after the destructive seed is complete.
+docker compose -p notifications-demo \
+  -f docker-compose.yml \
+  -f docker-compose.local-paths.yml \
+  up -d --wait --wait-timeout 300 doubtfire-api doubtfire-sidekiq doubtfire-web
 
 # Check services, push prerequisites, and the real asynchronous email path.
 bash verify-notifications.sh
 ```
+
+Do not start the API or worker before `db:populate` finishes. Their entrypoints
+also prepare the schema, and running both schema writers concurrently can fail
+with a duplicate foreign-key constraint even though each path works alone.
 
 The normal worker consumes `mailers` and `notifications`, the two user-facing
 channel queues. It deliberately does not consume `default`, because that queue
