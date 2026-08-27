@@ -32,13 +32,22 @@ done
 
 echo
 echo "2. Ports answer"
-check "api    :3200/api/settings" "200" "$(http "$api_url/api/settings")"
-check "web    :4400"              "200" "$(http "$web_url/")"
-check "mailpit:8225"              "200" "$(http "$mailpit_url/")"
+check "api    :3200/api/settings/public" "200" "$(http "$api_url/api/settings/public")"
+check "web    :4400"                     "200" "$(http "$web_url/")"
+check "mailpit:8225"                     "200" "$(http "$mailpit_url/")"
+
+# /api/settings includes authenticated feature configuration such as Web Push.
+# It must not be used as an anonymous health check.
+protected_settings_code=$(http "$api_url/api/settings")
+if [ "$protected_settings_code" = "200" ]; then
+  fail "authenticated settings reject an anonymous request"
+else
+  pass "authenticated settings reject an anonymous request ($protected_settings_code)"
+fi
 
 echo
 echo "3. Web can reach the api through its proxy"
-check "web -> api" "200" "$(docker exec notifications-demo-web curl -s -o /dev/null -w '%{http_code}' localhost:4200/api/settings 2>/dev/null)"
+check "web -> public api" "200" "$(docker exec notifications-demo-web curl -s -o /dev/null -w '%{http_code}' localhost:4200/api/settings/public 2>/dev/null)"
 
 echo
 echo "4. Mail goes to the catcher, not to a file  (EN-F02)"
@@ -90,8 +99,16 @@ code=$(curl -s -o /tmp/verify-comment-body -w '%{http_code}' \
 check "POST a task comment" "201" "$code"
 [ "$code" = "201" ] || echo "        response: $(head -c 200 /tmp/verify-comment-body)"
 comment_id=$(python3 -c "import json; print(json.load(open('/tmp/verify-comment-body')).get('id', ''))" 2>/dev/null || true)
-sleep 3
-after=$(curl -s "$mailpit_url/api/v1/messages" | python3 -c "import sys,json;print(json.load(sys.stdin)['messages_count'])" 2>/dev/null)
+# Delivery is asynchronous. Poll long enough for a cold Sidekiq worker instead
+# of treating normal queue latency as a product failure.
+after=$before
+for _attempt in $(seq 1 30); do
+  sleep 1
+  after=$(curl -s "$mailpit_url/api/v1/messages" | python3 -c "import sys,json;print(json.load(sys.stdin)['messages_count'])" 2>/dev/null)
+  if [ -n "$after" ] && [ "$after" -gt "$before" ]; then
+    break
+  fi
+done
 if [ "$after" -gt "$before" ]; then
   pass "mailpit received the email ($before -> $after)"
 else
