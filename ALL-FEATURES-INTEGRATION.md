@@ -6,6 +6,11 @@
 > component revisions differently, `HANDOVER.md` and the current gitlinks are
 > authoritative.
 
+The later validation-only component lock is recorded in
+`ONTRACK-MVP-VALIDATION-LOCK-20260827.md`. It pins the focused 26 August
+candidate revisions on top of the merged Deploy handover while preserving all
+remaining acceptance and release blockers.
+
 This file records the local integration assembled on 24 August 2026. It is the
 single local CPD, Peer Progress Indicator (PPI), Email Notifications (EN), and
 Mobile Notifications (MN) stack. The companion operating instructions are in
