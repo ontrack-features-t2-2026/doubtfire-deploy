@@ -1,0 +1,50 @@
+services:
+  dev-db:
+    container_name: ppi-live-dev-db
+
+  redis-sidekiq:
+    container_name: ppi-live-redis-sidekiq
+
+  mailpit:
+    container_name: ppi-live-mailpit
+    ports: !override
+      - "8125:8025"
+      - "1125:1025"
+
+  doubtfire-api:
+    container_name: ppi-live-api
+    image: ppi-live-doubtfire-api:20260823
+    ports: !override
+      - "3100:3000"
+    environment:
+      DF_DEV_DB_HOST: dev-db
+      DF_TEST_DB_HOST: dev-db
+      DF_PRODUCTION_DB_HOST: dev-db
+      DF_REDIS_SIDEKIQ_URL: redis://redis-sidekiq:6379/0
+      DF_SMTP_ADDRESS: mailpit
+      # Notification links must open the PPI web app, not the Rails API.
+      DF_INSTITUTION_HOST: http://localhost:4300
+
+  # Keep the worker on the same API image and public host as the API service.
+  # This matters once the PPI overlay is combined with the notifications stack:
+  # notification email is rendered asynchronously inside this process.
+  doubtfire-sidekiq:
+    container_name: ppi-live-sidekiq
+    image: ppi-live-doubtfire-api:20260823
+    environment:
+      DF_DEV_DB_HOST: dev-db
+      DF_TEST_DB_HOST: dev-db
+      DF_PRODUCTION_DB_HOST: dev-db
+      DF_REDIS_SIDEKIQ_URL: redis://redis-sidekiq:6379/0
+      DF_SMTP_ADDRESS: mailpit
+      DF_INSTITUTION_HOST: http://localhost:4300
+
+  doubtfire-web:
+    container_name: ppi-live-web
+    image: ppi-live-doubtfire-web:20260823
+    ports: !override
+      - "4300:4200"
+    volumes: !override
+      - ../../doubtfire-web:/doubtfire-web
+      - web_node_modules:/doubtfire-web/node_modules
+      - ./proxy.conf.docker.json:/doubtfire-web/proxy.conf.json:ro

@@ -2,6 +2,12 @@
 
 # Contributing to Doubtfire
 
+> **Legacy general guide.** For the current 11.0.x combined checkout, source
+> revisions and local runtime, follow `RUNNING-LOCALLY.md` and `HANDOVER.md`.
+> Do not use `run-api-web.sh`, the bind-mount assumptions, or the
+> `development`-branch examples below for this release; they are retained only
+> as upstream historical guidance.
+
 We welcome additions and extensions to Doubtfire that help progress our goal of supporting student learning through frequent formative feedback and delayed summative assessment.
 
 This guide provides high-level details on how to contribute to the Doubtfire repositories.

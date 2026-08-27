@@ -3,3 +3,13 @@
 /.github/workflows/ @ontrack-features-t2-2026/ontrack-leads
 /.github/review-policy/ @ontrack-features-t2-2026/ontrack-leads
 /.github/CODEOWNERS @ontrack-features-t2-2026/ontrack-leads
+
+# Release-critical files require review from the team that owns the handover.
+/production/ @ontrack-features-t2-2026/ontrack-leads
+/.gitmodules @ontrack-features-t2-2026/ontrack-leads
+/HANDOVER.md @ontrack-features-t2-2026/ontrack-leads
+/DEPLOYING.md @ontrack-features-t2-2026/ontrack-leads
+/MIGRATING.md @ontrack-features-t2-2026/ontrack-leads
+/RELEASING.md @ontrack-features-t2-2026/ontrack-leads
+/doubtfire-api @ontrack-features-t2-2026/ontrack-leads
+/doubtfire-web @ontrack-features-t2-2026/ontrack-leads

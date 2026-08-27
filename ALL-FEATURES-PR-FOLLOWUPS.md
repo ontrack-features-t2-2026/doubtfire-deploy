@@ -1,0 +1,308 @@
+# OnTrack 11.0.x all-features PR follow-up index
+
+> **Historical PR audit.** Check states and branch heads below are point-in-time
+> evidence. Use `HANDOVER.md` for the final release inputs, operator ownership,
+> production acceptance, rollback, and demo boundary, and recheck GitHub before
+> merging.
+
+This is the central coordination record for turning the validated CPD, Peer
+Progress Indicator (PPI), Email Notifications, and Mobile Notifications demo
+into reviewable pull requests. GitHub Issues are disabled in these repositories,
+so [deploy PR #12](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/12),
+its removable-demo follow-up
+[deploy PR #20](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/20),
+tracker/CI follow-up
+[deploy PR #21](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/21),
+and this file are the canonical tracker.
+
+GitHub state was refreshed at `2026-08-24T02:22:26Z`. Check states are a
+snapshot and must be rechecked immediately before merging. `BLOCKED` usually
+means the repository ruleset is waiting for review; it does not imply a failing
+test unless a failure is called out below.
+
+The large API and web `integration/11.0.x-all-features-20260824` branches are
+validation inputs, not the preferred review path. Keep their umbrella PRs in
+draft and merge the focused PRs into their natural feature branches.
+
+## Recommended review and merge order
+
+1. Merge the existing feature PRs into their shared feature branches after the
+   required review and green checks.
+2. For notifications, review the existing API feature PRs and focused repairs
+   #56/#57 into `feature/notifications`, then include green
+   [API #65](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/65)
+   before promoting that feature branch to `11.0.x`. PR #65 changes a migration,
+   schema, configuration, and `NotificationService`, so obtain its required two
+   approvals and rerun the shared feature-branch checks. It is included in the
+   validated local demo API revision `64b27f906ca63f4979e6f849c92caec8d7ca75ee`,
+   but not in the release base or frozen API umbrella.
+3. For CPD recommendations, the review dependency was
+   [API #59](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/59)
+   -> [API #61](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/61)
+   -> [web #84](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/84).
+   Live merges have nested #61 into API #59, and web #84 plus its route-test
+   follow-up #85 into web #72. Both parent rollups are now green. The remaining
+   review/merge path is therefore API #59, then web #72.
+4. For PPI, review [API #62](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/62),
+   which now contains merged privacy-floor PR #55. Coordinate its rollout with
+   [deploy #11](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/11):
+   the deploy value can land first, but do not deploy the API floor of 21 while
+   deployment still supplies 20, because the endpoint will fail closed.
+5. Merge the independent `11.0.x` CI, test-isolation, dependency, Compose, and
+   production-hardening PRs separately from the product-feature branches.
+6. Review deploy #12 last. Deploy PRs #13-#17, #19, and local-runtime #20 have
+   already been merged through its branch, so #12 remains the single
+   release-facing deploy integration PR.
+7. API #66, web #86, and deploy #20 have merged into their integration branches;
+   API RuboCop/all four test shards, web build/test/lint, and deploy runtime
+   validation are green. None of these merges a focused dependency into its
+   natural feature/release branch; the trio remains a local walkthrough layer,
+   not a replacement release path.
+8. After the focused API/web PRs land, refresh the umbrella heads and deploy
+   gitlinks, refresh the merged demo layers through focused follow-ups so their
+   effective diffs shrink to demo-only changes, rerun the complete integration
+   validation, and only then merge the release-level integration or promote the
+   demo layer.
+
+Prefer squash merging one-commit repair branches. Preserve merge commits in
+coordination branches so the feature histories remain traceable. Do not merge
+an umbrella PR merely to bypass a focused PR's review.
+
+## Current deploy coordination
+
+| PR | State and checks | Role |
+| --- | --- | --- |
+| [#21](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/21) — `docs/all-features-demo-followups-20260824` at `fe347db51a4f` -> `integration/deploy-all-features-foundation-20260824` | Merged at `4d11e56d6a5b`; automatic shell/Compose validation passed | Updates this tracker and adds path-filtered automatic shell/Compose rendering validation for the removable runtime. |
+| [#20](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/20) — `demo/all-features-runtime-20260824` at `69c1a4ba5e7d` -> `integration/deploy-all-features-foundation-20260824` | Merged at `111071ab0fdc`; Teams check passed | Removable local runtime for API #66/web #86. It is now in the integration branch, not `11.0.x`. Uses a dedicated project, database, containers, and volume; fresh-start readiness was verified. |
+| [#12](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/12) — `integration/deploy-all-features-foundation-20260824` -> `11.0.x` | Open, ready for review, `BLOCKED`; no status check is configured on the latest merge commit | Canonical tracker and top-level notification/PPI integration. It now contains merged #13-#17 and #19. |
+| [#10](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/10) — `chore/sidekiq-worker` -> `11.0.x` | Open, `BLOCKED`; 1/1 checks passing | Sidekiq worker prerequisite for the notifications environment. |
+| [#11](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/11) — `config/ppi-production-values-20260824` at `0b076bda442f` -> `11.0.x` | Open, `BLOCKED`; 1/1 checks passing | Production PPI cohort/staleness values. Coordinate with API #62. |
+| [#18](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/18) — `fix/production-ready-compose-20260824` at `c8554ebd2257` -> `11.0.x` | Open, `BLOCKED`; 2/2 checks passing | Separate fail-closed production Compose hardening. |
+| [#9](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/9) | Open, `BLOCKED`; 1/1 checks passing | Teams workflow only; outside the product-feature stack. |
+
+Merged into deploy #12's branch:
+
+- #13 Compose schema cleanup
+- #14 combined-demo consistency
+- #15 PR-ready coordination merge
+- #16 combined-demo runbook
+- #17 integration lock and the original tracker
+- #19 privacy-safe PPI demo cohort documentation
+
+These merged PRs are present in #12, but they are not in `11.0.x` until #12 is
+reviewed and merged.
+
+## Current API follow-ups
+
+| PR | State and checks at refresh | Dependency and action |
+| --- | --- | --- |
+| [#66](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/66) — `demo/all-features-data-20260824` at `055e7190e33b` -> `integration/11.0.x-all-features-20260824` | Merged at `0b7bdd5941e9`; RuboCop, all four unit-test shards, rollup, and Teams checks passed | Central guarded demo scenario. Merged into the API integration branch only; focused CPD/notification #59/#65 review paths remain unchanged. Companion to merged web #86/deploy #20. |
+| [#59](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/59) — `fix/cpd-task-definition-privacy-pr-20260824` at `5278ddd54fd1` -> `feature/cross-unit` | Open, ready, `BLOCKED`; 4/4 checks passing. Unit suites passed in 29m31s and 31m51s | Carries the privacy repair and merged recommendation API #61. This is the remaining API parent review gate. |
+| [#61](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/61) — recommendation contract at `ca20f6bfa584` | Merged into #59 | The authoritative #59 parent rollup subsequently completed 4/4 green. |
+| [#62](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/62) — `style/ppi-sample-data-lint-pr-20260824` at `1fbbd75842d5` -> `feature/peer-progress-indicator` | Open, ready, `BLOCKED`; 4/4 checks passing | Contains merged #55, so it is now the single PPI lint/privacy review path. Coordinate with deploy #11. |
+| [#53](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/53) — upload test isolation | Open, ready, `BLOCKED`; 6/6 passing | Independent `11.0.x` test repair. |
+| [#54](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/54) — deployment metadata IDs | Open, ready, `BLOCKED`; 6/6 passing | Independent `11.0.x` workflow repair. |
+| [#56](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/56) — notification group email link | Open, ready, `BLOCKED`; 6/6 passing | Merge into `feature/notifications`. |
+| [#57](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/57) — notification settings isolation | Open, ready, `BLOCKED`; 6/6 passing | Merge into `feature/notifications`. |
+| [#65](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/65) — `email/task-availability-paths` at `cdbb20897963` -> `feature/notifications` | Open, ready, mergeable, `BLOCKED`; 5/5 checks passing | Covers future-dated, CSV-imported, rollover-created, copied, target-grade, and student-specific availability paths. Included in the validated local demo at API `64b27f90`; still requires two approvals and merge into the feature/release path. |
+| [#60](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/60) — combined API umbrella at `7f912987d489` | Open draft, `BLOCKED`; 7/7 passing | Coordination/final-validation only; it now includes merged demo-cohort PR #64. |
+| [#63](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/63) — production runtime hardening | Open, ready, `BLOCKED`; 4/4 checks passing | Separate production-readiness review, not part of the locked demo. |
+
+API #55 was merged into #62 rather than the release branch. API #61 was merged
+into #59 rather than `feature/cross-unit`. API #58 was merged into its parent
+email PR #48; #48 remains open with 4/4 checks passing. The original in-scope
+API feature PRs #41-#43 and #45-#52 remain open. Their checks are green, and
+GitHub marks them `BLOCKED` pending review.
+
+`test/notifications-settings-contract-pr-20260824` still has no unique commit
+beyond `feature/notifications`. Do not open an empty PR; extract the remaining
+contract update only after the push fields and `11.0.x` settings split share a
+base.
+
+## Current web follow-ups
+
+| PR | State and checks at refresh | Dependency and action |
+| --- | --- | --- |
+| [#86](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/86) — `demo/centralized-demo-mode-20260824` at `dc6a0bfbba33` -> `integration/11.0.x-all-features-20260824` | Merged at `c74de4093f43`; build/test/lint passed. One Teams webhook run returned HTTP 504 and the close-event retry passed | Removable `src/app/demo/` controls and quiet/full switch. Merged into the web integration branch only; focused #72/#77/#79 review paths remain unchanged. Companion to API #66/merged deploy #20. |
+| [#72](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/72) — `docs/cpd-sizing-investigation` at `47978658eacc` -> `feature/cross-unit` | Open, ready, `BLOCKED`; 6/6 checks passing | Carries merged #74, #75, #80, #82, #84, and #85. This is the remaining web parent gate after API #59. |
+| [#84](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/84) — recommendation contract/lifecycle at `71484082c926` | Merged into #72 with both test jobs failing | The failure was isolated to the route spec missing a `TaskService2` provider. The production implementation, lint, and build jobs passed. |
+| [#85](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/85) — route provider follow-up at `b867365cc36e` | Merged into #72; 8/8 checks passing | Tiny green regression follow-up for #84. |
+| [#75](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/75) — centred deadline warning icons | Merged with 11/11 checks passing | Requested overdue/3-day/7-day alignment fix; now carried by #72. |
+| [#77](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/77) — live task-level PPI adapter | Open, ready, `BLOCKED`; 10/10 passing | Merge into `feature/peer-progress-indicator`. |
+| [#79](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/79) — realistic demo peer median | Open, ready, `BLOCKED`; 9/9 passing | Stops the demo median at today (about 40% at the seeded date) instead of showing every task complete. |
+| [#76](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/76) — Angular CI timeout | Open, ready, `BLOCKED`; 12/12 passing | Independent `11.0.x` CI repair. |
+| [#78](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/78) — Node 22 alignment | Open, ready, `BLOCKED`; 12/12 passing | Independent `11.0.x` toolchain repair. |
+| [#81](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/81) — combined web umbrella at `36be84f30d80` | Open draft, `BLOCKED`; 10/10 passing | Coordination/final-validation only. |
+| [#83](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/83) — inherited npm audit fix | Open, ready, `BLOCKED`; 10/10 passing | Separate dependency-security PR created outside this extraction; review it independently. |
+
+Web #74 (due-date warning states), #75 (chip alignment), #80 (completed-task
+ordering), #82 (the first recommendation UI), #84 (final contract/lifecycle),
+and #85 (route-test provider) are merged into the #72/docs chain. They are not
+in `feature/cross-unit` until #72 is reviewed and merged.
+
+The original in-scope web CPD/PPI/notification PRs #57-#62, #69-#73 remain
+open. #72's complete replacement rollup is green. Calendar, waveform,
+language-notice, and task-comment PRs remain outside this all-features stack.
+
+## Coordination-only integration heads
+
+These reproduce the working demo and are useful for final smoke testing, but
+their large histories are not the preferred review diffs:
+
+| Repository | Published coordination PR/head | Status |
+| --- | --- | --- |
+| API | [#60](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/60) at `7f912987d489` | Draft; 7/7 checks passing. The deploy gitlink still locks the previously fully validated `2f945c71203a47f8777ad158966a2cdff765109a`. |
+| Web | [#81](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/81) at `36be84f30d80` | Draft; 10/10 checks passing and matches the deploy gitlink. |
+| Deploy | [#12](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/12) | Open top-level integration; no status check is configured on its latest merge commit. |
+
+The frozen API umbrella #60 and deploy gitlink do not yet contain the final CPD
+recommendation work now nested in API #59/web #72 or the notification
+availability work in API #65. The separately validated local demo uses API
+`64b27f906ca63f4979e6f849c92caec8d7ca75ee`, which includes #65 integration and
+an asynchronous-mail test adjustment. That local validation does not merge #65
+into `feature/notifications`, the release base, or frozen umbrella. After the
+required PRs are accepted, refresh the published umbrella and deploy gitlinks,
+then rerun the release lock validation.
+
+## Removable all-features demo layer
+
+The newest local walkthrough is deliberately isolated from the release locks:
+
+| Repository | PR/head | Removable boundary |
+| --- | --- | --- |
+| API | [#66](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/66) at `055e7190e33b`, merged into the integration branch | `lib/demo_data/`, a thin rake task, and its focused test. The task requires development, database `doubtfire-all-features-demo`, and `DF_DEMO_DATA_PROFILE=all-features`. |
+| Web | [#86](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/86) at `dc6a0bfbba33`, merged into the integration branch | `src/app/demo/` plus small, documented route/menu/banner and interception hooks. Production fails closed. |
+| Deploy | [#20](https://github.com/ontrack-features-t2-2026/doubtfire-deploy/pull/20) at `69c1a4ba5e7d`, merged into the integration branch | `development/all-features-demo/` plus one runbook link. It uses dedicated containers, images, volume, Compose project, and database. |
+
+The UI switch defaults off per browser session. Off shows one baseline unit,
+an empty notification state, and no peer-comparison data. On shows the complete
+four-unit scenario, five unread of seven total notifications, a live 25-person
+task cohort at exactly 40%, and clearly labelled sample-only 42% unit summary
+and burndown data. The push card is a visual preview only and never requests
+permission or writes a subscription.
+
+## Validation already recorded
+
+- Removable demo API at `055e7190`: focused scenario completed with 2 runs/91
+  assertions; the combined recommendation/PPI/notification/push pack completed
+  with 108 runs/2,938 assertions; full RuboCop inspected 349 files with no
+  offences. A real guarded seed produced 26 users, 29 projects, 54 tasks, seven
+  notifications, zero push subscriptions, and a 25-person/40% cohort. GitHub
+  then passed RuboCop, all four unit-test shards, the rollup, and Teams checks.
+- Removable demo web at `dc6a0bfb`: 92 files completed with 485 passing tests
+  and one existing todo; type-check, lint, focused suites, formatting, and
+  whitespace checks passed. The production optimizer aborted in this local
+  environment with exit 134 before diagnostics under Node 26 and Node 22; the
+  actual Docker development bundle compiled and served successfully.
+- Isolated runtime at `69c1a4ba`: a genuinely fresh database start, readiness,
+  migration/init/seed, stop, and restart passed. Web and Mailpit returned HTTP
+  200 and the unauthenticated API settings probe returned the expected HTTP 419.
+- The deploy tracker follow-up adds a path-filtered, read-only CI job that checks
+  `demo.sh` syntax and renders the exact three-file Compose configuration without
+  pulling images, building, starting services, or mutating Docker state. Its
+  local shell, Compose, YAML, and whitespace checks passed; GitHub PR #21 then
+  completed both configured checks successfully.
+- Final browser smoke verified both switch states, all four units, centred
+  overdue/3-day/7-day chips, seven inbox rows with five unread, the exact 40%
+  live task PPI, and quiet-mode notification/PPI masking. The browser session
+  was left with demo mode enabled for the walkthrough.
+
+- Full locked web revision: 87 files, 459 passing tests, 1 existing todo,
+  type-check, lint, 46 focused CPD tests, and production build all passed.
+- Deadline-chip alignment: 13 focused tests, type-check, targeted lint,
+  formatting, browser measurement, and whitespace checks passed. The icon box
+  and line height are both 14px inside a 20px chip with equal vertical space.
+- Realistic PPI demo curve: focused tests passed and the seeded current-date
+  peer median is approximately 42%, rather than 100%.
+- Full locked API revision: 1,038 runs and 12,976 assertions with no failures,
+  errors, or skips; 344-file RuboCop completed with no offences.
+- API #61 local focused proof before publication: recommender tests completed
+  with 14 runs/57 assertions; student-safe projects payload completed with
+  1 run/46 assertions; affected-file RuboCop and syntax checks passed.
+- API #65: 5/5 GitHub checks passed. Its local evidence includes 38 focused
+  runs/176 assertions, 4 import/rollover integration runs/20 assertions, and
+  149 broader notification runs/715 assertions with no failures or errors;
+  336-file RuboCop passed with no offences.
+- Earlier validated local API repin `64b27f906ca63f4979e6f849c92caec8d7ca75ee`:
+  the notification migration was applied; the task-definition start marker,
+  notification dedupe/delivery columns, and unique index were present; Sidekiq
+  listed all nine scheduled jobs including task-availability delivery. Web and
+  Mailpit returned HTTP 200, the unauthenticated API settings probe returned
+  the expected HTTP 419, and browser sign-in showed all four seeded units and
+  notifications.
+- Web #85 regression proof before publication: 63 test files completed with
+  148 passing tests and 1 existing todo; type-check, lint, formatting, and
+  whitespace checks passed.
+- Deploy stack: all base and overlay Compose configurations rendered; every
+  YAML file parsed; shell and Node helpers passed syntax checks; whitespace
+  checks passed.
+- The browser smoke covered student and convenor login, the four-unit CPD
+  dashboard, due-date sorting, a live task PPI route, notification preferences,
+  and the convenor inbox. Email delivery through Sidekiq and Mailpit succeeded.
+- Push prerequisites and the service worker were present. Browser notification
+  permission remains a manual, user-granted site permission; application code,
+  CI, and GitHub cannot silently grant it.
+
+## Deliberate remaining limitations
+
+- Task-level PPI uses the live authorised API. Unit-summary and burndown PPI
+  remain explicitly labelled sample/demo data until authorised aggregate API
+  contracts are designed and reviewed.
+- Deploy #18 and API #63 are separate production-hardening reviews. The combined
+  local demo must not be presented as production-ready until those changes and
+  an environment-specific deployment review are complete.
+- Web dependency remediation is isolated in external follow-up #83. Keep it
+  separate from feature reviews so dependency changes receive their own
+  regression and security review.
+- A real browser push registration cannot be automated from GitHub or silently
+  granted by application code. The user must allow notifications for the local
+  site and trigger registration from the UI.
+- The removable local demo at API `055e7190` includes future-dated, imported,
+  rollover-created, copied, target-grade, and student-specific task-availability
+  notifications at its combined dependency level. The frozen API umbrella,
+  deploy gitlink, and release base still exclude them until API #65 receives two
+  approvals and is merged through the feature/release path.
+
+## Remaining follow-up checklist
+
+- [x] Publish focused PRs and combined API/web umbrella PRs.
+- [x] Publish the removable all-features trio with cross-links, removal
+      instructions, safety guards, and validation evidence. API #66/web #86/
+      deploy #20 merged only into their integration branches, with their code
+      and configuration checks green.
+- [x] Publish and merge deploy tracker/CI follow-up #21 with its automatic
+      shell/Compose validation green.
+- [x] Verify the isolated localhost runtime from a fresh database and leave the
+      UI walkthrough enabled at `http://localhost:4400`.
+- [x] Merge web #74/#75/#80/#82 into the #72 CPD review chain.
+- [x] Merge API #55 into #62 and API #58 into #48.
+- [x] Merge deploy #13-#17 and #19 into central deploy PR #12.
+- [x] Add web #85 for the #84 route-spec provider regression and merge both
+      into #72.
+- [x] Obtain a fully green API #62 check rollup after merged PPI PR #55.
+- [x] Obtain a fully green web #72 parent check rollup after merged #84/#85.
+- [x] Obtain a fully green API #59 parent rollup after merged #61; both unit
+      suites and both RuboCop jobs passed.
+- [ ] Obtain the required team approval and resolve every review thread on the
+      focused PRs.
+- [ ] Merge the remaining recommendation parents in order: API #59, then web
+      #72. Their child PRs #61, #84, and #85 are already nested within them.
+- [ ] Obtain two approvals for API #65, merge it into `feature/notifications`,
+      and rerun the notification feature-branch checks.
+- [x] Repin and verify the local combined demo at API `64b27f90`, including
+      migration, scheduler, service, browser, and notification smoke checks.
+- [ ] After #65 merges, add it to the frozen API umbrella and deploy gitlink,
+      then repeat the release-lock validation.
+- [ ] Coordinate deploy #11 with the API #62 privacy-floor rollout.
+- [ ] Refresh umbrella heads and deploy gitlinks after the focused PRs land.
+- [ ] After focused dependencies land, refresh the merged API/web integration
+      heads so their effective diffs contain only the removable demo layer;
+      update the merged deploy runtime through a focused follow-up if its source
+      paths change, then rerun its fresh-start/browser proof.
+- [ ] Review the merged web/runtime layers again as part of their release-facing
+      umbrella PRs. Do not use their integration-branch merges to bypass focused
+      dependency approvals.
+- [ ] Repeat the final Compose, browser, notification-email, CPD, and PPI smoke
+      tests against the refreshed lock.
+- [ ] Manually allow notifications for the localhost site, reload, and verify a
+      real push registration and delivery from a user gesture.
