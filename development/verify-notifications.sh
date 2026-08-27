@@ -34,15 +34,34 @@ worker_queues=$(docker inspect -f '{{json .Config.Cmd}}' notifications-demo-side
   2>/dev/null || true)
 check "worker consumes only the notification channel queues" "mailers,notifications" "$worker_queues"
 
+# Compose considers a container started before Puma or the Angular server is
+# necessarily ready to answer. A verifier run immediately after `up` or
+# `restart` used to sample that short window and report false 000/500 failures.
+# Poll all three routes together for up to one minute, then let the ordinary
+# checks below report the last observed status if readiness never arrives.
+api_status=000
+web_status=000
+proxy_status=000
+for _ in {1..60}; do
+  api_status=$(http "$api_url/api/settings/public")
+  web_status=$(http "$web_url/")
+  proxy_status=$(docker exec notifications-demo-web curl -s -o /dev/null -w '%{http_code}' \
+    localhost:4200/api/settings/public 2>/dev/null || true)
+  if [ "$api_status" = 200 ] && [ "$web_status" = 200 ] && [ "$proxy_status" = 200 ]; then
+    break
+  fi
+  sleep 1
+done
+
 echo
 echo "2. Ports answer"
-check "api    :3200/api/settings/public" "200" "$(http "$api_url/api/settings/public")"
-check "web    :4400"                     "200" "$(http "$web_url/")"
+check "api    :3200/api/settings/public" "200" "$api_status"
+check "web    :4400"                     "200" "$web_status"
 check "mailpit:8225"                     "200" "$(http "$mailpit_url/")"
 
 echo
 echo "3. Web can reach the api through its proxy"
-check "web -> api" "200" "$(docker exec notifications-demo-web curl -s -o /dev/null -w '%{http_code}' localhost:4200/api/settings/public 2>/dev/null)"
+check "web -> api" "200" "$proxy_status"
 
 echo
 echo "4. Mail goes to the catcher, not to a file  (EN-F02)"
