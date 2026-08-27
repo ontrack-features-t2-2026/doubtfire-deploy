@@ -77,11 +77,9 @@ The normal combined stack uses the base and local-path files under the dedicated
 `notifications-demo` Compose project. That project name keeps its database and dependency
 volumes separate from any older base-only stack and matches the notification verification
 helpers. It exposes web, API, and Mailpit on <http://localhost:4400>,
-<http://localhost:3200>, and <http://localhost:8225> respectively:
-
-```bash
-docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml up -d --build
-```
+<http://localhost:3200>, and <http://localhost:8225> respectively. Use the
+ordered startup under **Steps to run** so a destructive demo seed cannot race
+an eagerly starting API or worker.
 
 To apply the retained isolated PPI setup as well, put its overlay last on every Compose
 command:
@@ -115,37 +113,45 @@ setup above, use `-p ppi-live` and include its third
 **Do not run `run-api-web.sh`.** It sits in this folder and looks like the way to start
 things. It leaves out the second `-f` flag and fails on an empty build context.
 
-1. Build and start everything. Use `--build` the first time, and after you switch the
+1. Build the application images. Do this the first time and after switching the
    integration revision.
 
-    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml up -d --build
+    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml build \
+      doubtfire-api doubtfire-sidekiq doubtfire-web
 
    The first build is slow. It installs gems and node packages.
 
-2. Set up the database. Do this the first time, or any time the database is broken.
+2. Start only the infrastructure and wait for it to be ready.
 
-    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api \
+    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml up -d --wait \
+      dev-db redis-sidekiq mailpit
+
+3. Set up the database. Do this the first time, or any time the database is broken.
+
+    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml run --rm --no-deps doubtfire-api \
       bash -c "bundle exec rake db:populate"
 
    `db:populate` already drops, creates, migrates and seeds the database on its own. The
    longer command you may see elsewhere does the slowest part of setup twice.
 
-   If you get a database connection error, the database container is probably still
-   starting. Wait a few seconds and run the command again.
-
    It takes a while and prints a lot. That is normal.
 
-3. Make sure the app is up.
+   Keep the API and worker stopped until this finishes. `db:populate` rebuilds
+   the schema; letting an application entrypoint load the same schema at the
+   same time can produce a duplicate-constraint failure.
 
-    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml up -d
+4. Start the application processes and wait for them.
 
-4. Open the app.
+    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml up -d --wait --wait-timeout 300 \
+      doubtfire-api doubtfire-sidekiq doubtfire-web
+
+5. Open the app.
 
    - Web: http://localhost:4400
    - API docs: http://localhost:3200/api/docs
    - Mail inbox: http://localhost:8225
 
-5. Log in. Every test user has the password "password".
+6. Log in. Every test user has the password "password".
 
    - Student: student_1
    - Admin: aadmin
@@ -226,11 +232,11 @@ folder in the wrong repository. That comment is now fixed.
 
 - Check the api answers, from inside the container:
 
-    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml exec doubtfire-api curl -s localhost:3000/api/settings
+    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml exec doubtfire-api curl -s localhost:3000/api/settings/public
 
 - Check the web can reach the api through its proxy. You want 200:
 
-    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml exec doubtfire-web curl -s -o /dev/null -w "%{http_code}\n" localhost:4200/api/settings
+    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml exec doubtfire-web curl -s -o /dev/null -w "%{http_code}\n" localhost:4200/api/settings/public
 
 - Check the mail catcher answers. You want 200:
 
@@ -325,14 +331,11 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
 
    ```bash
    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml down -v
-
-   docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml up -d
-
-   docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api bash -c "bundle exec rake db:populate"
    ```
 
-   MariaDB sets itself up from scratch on first boot, so give it a few seconds after the `up`
-   before you run the populate.
+   Then repeat **Steps to run** 1–4. Those steps wait for MariaDB, keep API and
+   worker schema readers stopped during `db:populate`, and start them only after
+   the seed is complete.
 
    This deletes your local data. That is fine, everything in it came from `db:populate` and
    the command above puts it all back. `-v` also clears the web `node_modules` volume, so the
@@ -363,10 +366,10 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
    Fix: clear the volume and rebuild.
 
     docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml down -v
-    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml up -d --build
 
-   **`-v` does delete your database**, because that is a volume too. Run step 2 afterwards to
-   put it back. Your code is not touched, the repos are bind mounted rather than copied.
+   **`-v` does delete your database**, because that is a volume too. Repeat
+   **Steps to run** 1–4 to rebuild, repopulate, and start safely. Your code is
+   not touched; the repos are bind mounted rather than copied.
 
 9. You trigger an email and nothing appears at http://localhost:8225.
    Cause: nearly always an api container started before the mail catcher existed, so it
@@ -429,11 +432,9 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
 
    ```bash
    docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml down -v
-
-   docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml up -d
-
-   docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api bash -c "bundle exec rake db:populate"
    ```
+
+   Then repeat **Steps to run** 1–4 so schema writers cannot race.
 
    The old `doubtfire-deploy/data/database` folder is dead after that and you can delete it.
    Nothing reads it any more.
@@ -448,7 +449,7 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
    Fix: use the whole command from step 2. The part before `bash -c` is not optional.
 
      ```bash
-     docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml run --rm doubtfire-api bash -c "bundle exec rake db:populate"
+     docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml run --rm --no-deps doubtfire-api bash -c "bundle exec rake db:populate"
      ```
 
      This single-line form avoids the PowerShell line-continuation issue.

@@ -36,13 +36,13 @@ check "worker consumes only the notification channel queues" "mailers,notificati
 
 echo
 echo "2. Ports answer"
-check "api    :3200/api/settings" "200" "$(http "$api_url/api/settings")"
-check "web    :4400"              "200" "$(http "$web_url/")"
-check "mailpit:8225"              "200" "$(http "$mailpit_url/")"
+check "api    :3200/api/settings/public" "200" "$(http "$api_url/api/settings/public")"
+check "web    :4400"                     "200" "$(http "$web_url/")"
+check "mailpit:8225"                     "200" "$(http "$mailpit_url/")"
 
 echo
 echo "3. Web can reach the api through its proxy"
-check "web -> api" "200" "$(docker exec notifications-demo-web curl -s -o /dev/null -w '%{http_code}' localhost:4200/api/settings 2>/dev/null)"
+check "web -> api" "200" "$(docker exec notifications-demo-web curl -s -o /dev/null -w '%{http_code}' localhost:4200/api/settings/public 2>/dev/null)"
 
 echo
 echo "4. Mail goes to the catcher, not to a file  (EN-F02)"
@@ -94,8 +94,15 @@ code=$(curl -s -o /tmp/verify-comment-body -w '%{http_code}' \
 check "POST a task comment" "201" "$code"
 [ "$code" = "201" ] || echo "        response: $(head -c 200 /tmp/verify-comment-body)"
 comment_id=$(python3 -c "import json; print(json.load(open('/tmp/verify-comment-body')).get('id', ''))" 2>/dev/null || true)
-sleep 3
-after=$(curl -s "$mailpit_url/api/v1/messages" | python3 -c "import sys,json;print(json.load(sys.stdin)['messages_count'])" 2>/dev/null)
+# Sidekiq polls asynchronously, so a fixed three-second sleep can observe the
+# queue just before a healthy worker delivers. Poll for up to 20 seconds and
+# finish immediately when Mailpit records the message.
+after="$before"
+for _ in {1..20}; do
+  sleep 1
+  after=$(curl -s "$mailpit_url/api/v1/messages" | python3 -c "import sys,json;print(json.load(sys.stdin)['messages_count'])" 2>/dev/null)
+  [ "$after" -gt "$before" ] && break
+done
 if [ "$after" -gt "$before" ]; then
   pass "mailpit received the email ($before -> $after)"
 else
