@@ -20,7 +20,7 @@ configuration, and workflow changes merged through Deploy pull requests #11,
 | Component | Branch | Gitlink revision |
 | --- | --- | --- |
 | API | `closure/api-ontrack-mvp-20260827` | `6c74dbbc07e219d60ca49e1b5ea42f737e5ef225` |
-| Web | `closure/web-ontrack-mvp-20260827` | `5255c271778643cd6f972e3bce1d83ecdb2e292d` |
+| Web | `closure/web-ontrack-mvp-20260827` | `16c22c992c821e16981c8f8cb2601f0a61f73007` |
 
 The configured `.gitmodules` URLs point to the matching
 `ontrack-features-t2-2026` repositories. The component branches must be
@@ -57,9 +57,13 @@ published before a recursive-clone verification can succeed.
 - Type-check and lint passed.
 - CPD: 98 passed / 1 existing todo; PPI: 109 passed; notifications/push: 177
   passed.
-- The complete suite passed 605 tests across 103 files, with 1 existing todo
-  and no failures.
-- The Node 22 production build passed in 99.911 seconds.
+- The complete suite passed 607 tests across 104 files, with 1 existing todo
+  and no failures. The two extra tests and the extra file are the page-container
+  spec that the 11.0.x merge brought onto the branch; on `5255c27` the same run
+  was 605 across 103.
+- The Node 22 production build passed in 99.911 seconds on `5255c27`. It has not
+  been re-measured locally on `16c22c9`, so hosted `build (22)` on that head is
+  the authority for the merged tree.
 
 ### Exact-image security scan
 
@@ -69,6 +73,15 @@ published before a recursive-clone verification can succeed.
   163 Unknown instances. The project npm layer contributed no findings and
   `npm audit` reported zero; the 16 fixable language-package findings are in
   the bundled npm from the Node 22 base image.
+  This image was built from `5255c27`, the revision immediately before the
+  11.0.x merge that produced the locked `16c22c9`. The findings still describe
+  the locked revision: that merge changed 18 files, 14 Angular templates, one
+  scss file and three TypeScript files, and touched neither `package.json`,
+  `package-lock.json` nor any Dockerfile, so the OS and language package
+  inventory Trivy measures is byte identical. Confirm with
+  `git diff --name-only 5255c271 16c22c99 -- package.json package-lock.json`,
+  which is empty. A rebuild and rescan is still required before release, for
+  the digest rather than for the counts.
 - The final API image scan is recorded in the companion Guide evidence report.
 
 The Web result is not clean and the image is not approved for production.
@@ -95,7 +108,7 @@ cd doubtfire-deploy
 git submodule status
 ```
 
-Expected component prefixes are `6c74dbb` for API and `5255c27` for Web.
+Expected component prefixes are `6c74dbb` for API and `16c22c9` for Web.
 
 Repository-side handover can proceed from this lock. Production release still
 requires all applicable gates below:
