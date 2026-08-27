@@ -126,6 +126,13 @@ services:
       - ../data/tmp:/doubtfire/tmp:z
       - ../data/student-work:/student-work:z
 
+  doubtfire-sidekiq:
+    image: localhost/ontrack-doubtfire-api:11.0-local
+    volumes:
+      - ../../doubtfire-api/:/doubtfire:z
+      - ../data/tmp:/doubtfire/tmp:z
+      - ../data/student-work:/student-work:z
+
   doubtfire-web:
     image: localhost/ontrack-doubtfire-web:11.0-local
     userns_mode: "keep-id:uid=1000,gid=1000"
@@ -148,6 +155,8 @@ YAML
 The local image names stop Compose from pulling or reusing an older public API image. We hit a Bundler exit code `18` because the old image had a Ruby version that did not match the current API Gemfile.
 
 The API mounts use `:z` so SELinux allows the source folders to be shared with the API containers.
+
+`doubtfire-sidekiq` is the background worker and runs the same API image, so it repeats the API block exactly. Without it the worker keeps the public `8.0.x-dev` tag from `docker-compose.yml` while the API uses the local build, and `up -d --no-build` pulls that old image instead of failing. It needs no separate build. Building `doubtfire-api` in step 8 produces the image both services use.
 
 The frontend uses `label=disable` because Podman failed while trying to relabel the full frontend repository, especially `node_modules`.
 
@@ -531,6 +540,7 @@ df-compose-dev-db
 df-compose-mailpit
 df-compose-redis-sidekiq
 doubtfire-api
+doubtfire-sidekiq
 doubtfire-web
 ```
 
@@ -654,6 +664,13 @@ services:
       - podman_db_data:/var/lib/mysql
 
   doubtfire-api:
+    image: localhost/ontrack-doubtfire-api:11.0-local
+    volumes:
+      - ../../doubtfire-api/:/doubtfire:z
+      - ../data/tmp:/doubtfire/tmp:z
+      - ../data/student-work:/student-work:z
+
+  doubtfire-sidekiq:
     image: localhost/ontrack-doubtfire-api:11.0-local
     volumes:
       - ../../doubtfire-api/:/doubtfire:z
