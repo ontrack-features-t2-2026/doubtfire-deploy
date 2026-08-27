@@ -19,4 +19,8 @@ Refer to [CONTRIBUTING.md](CONTRIBUTING.md) for details on getting started contr
 
 ## How to use this project for deployment
 
+Use the fail-closed production Compose stack and operator runbook in
+[DEPLOYING.md](DEPLOYING.md). The deployment requires institution-owned secrets,
+TLS, identity-provider and SMTP settings, persistent storage, and immutable
+container image digests; none are defaulted in the repository.
 

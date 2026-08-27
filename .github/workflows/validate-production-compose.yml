@@ -1,0 +1,30 @@
+name: validate-production-compose
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/validate-production-compose.yml"
+      - "DEPLOYING.md"
+      - "production/**"
+  push:
+    branches:
+      - 11.0.x
+    paths:
+      - ".github/workflows/validate-production-compose.yml"
+      - "DEPLOYING.md"
+      - "production/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate production configuration
+        run: production/tests/validate_test.sh
