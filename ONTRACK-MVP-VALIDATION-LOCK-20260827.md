@@ -19,7 +19,7 @@ configuration, and workflow changes merged through Deploy pull requests #11,
 
 | Component | Branch | Gitlink revision |
 | --- | --- | --- |
-| API | `closure/api-ontrack-mvp-20260827` | `f25945d228c1a3b321412047dcfe304e43cb7658` |
+| API | `closure/api-ontrack-mvp-20260827` | `6c74dbbc07e219d60ca49e1b5ea42f737e5ef225` |
 | Web | `closure/web-ontrack-mvp-20260827` | `5255c271778643cd6f972e3bce1d83ecdb2e292d` |
 
 The configured `.gitmodules` URLs point to the matching
@@ -42,11 +42,15 @@ published before a recursive-clone verification can succeed.
   assigned all 129 discovered files exactly once, with no duplicates or
   omissions; shards contain 15–17 files and 4,278–4,284 lines. Splitter tests
   passed 5 runs / 29 assertions.
-- A local unsharded run reached the repository's LaTeX/JPlag helper-service
-  tests but could not access `/var/run/docker.sock` from the managed sandbox.
-  Those environment-bound errors are not represented as product regressions
-  or as a full-suite pass. Hosted CI, where the workflow provisions the
-  required services, remains authoritative.
+- The protected anonymous push-settings contract passed 7 runs / 42 assertions,
+  and the time-frozen portfolio-receipt lookup regression passed 1 run / 16
+  assertions. Both tests now assert the current API and exact-user contracts.
+- A local unsharded run completed 1,145 runs / 16,245 assertions / 0 skips in
+  2,785.068 seconds. It is not reported as a pass: all 26 failing tests were
+  classified as 22 Docker-helper/socket-dependent PDF, portfolio, JPlag and TII
+  cases, two standalone-image workflow-mount cases, and the two stale test
+  expectations fixed above. No outcome remains unclassified. Hosted CI, where
+  the checkout and supported services are mounted, remains authoritative.
 
 ### Web
 
@@ -91,7 +95,7 @@ cd doubtfire-deploy
 git submodule status
 ```
 
-Expected component prefixes are `f25945d` for API and `5255c27` for Web.
+Expected component prefixes are `6c74dbb` for API and `5255c27` for Web.
 
 Repository-side handover can proceed from this lock. Production release still
 requires all applicable gates below:

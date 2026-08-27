@@ -8,7 +8,7 @@
 
 The current final-candidate component lock is recorded in
 `ONTRACK-MVP-VALIDATION-LOCK-20260827.md`. It supersedes the focused 26 August
-prior candidate and pins API `f25945d` and Web `5255c27` while preserving the
+prior candidate and pins API `6c74dbb` and Web `5255c27` while preserving the
 remaining browser, hosted-CI, security, and release gates.
 
 This file records the local integration assembled on 24 August 2026. It is the
