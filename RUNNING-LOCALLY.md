@@ -438,24 +438,24 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
 
 The local API container receives these non-secret development defaults:
 
-- `DF_PPI_MINIMUM_COHORT_SIZE=20`
+- `DF_PPI_MINIMUM_COHORT_SIZE=21`
 - `DF_PPI_STALE_AFTER_HOURS=48`
 
-`DF_PPI_MINIMUM_COHORT_SIZE=20` matches the API's own floor.
-`PeerProgressApi::MINIMUM_SAFE_COHORT_SIZE` is 20 and `minimum_cohort_size!`
-returns 503 for anything below it, so a lower value disables the endpoint for
-enabled units rather than publishing a smaller cohort. You can raise this
-value, you cannot lower it. `positive_integer_env!` separately rejects a
-missing, zero, negative or non-integer value.
+`DF_PPI_MINIMUM_COHORT_SIZE=21` matches the API's own floor.
+`PeerProgressApi::MINIMUM_SAFE_COHORT_SIZE` is 21 and `minimum_cohort_size!`
+causes an enabled unit with an eligible snapshot to return 503 for anything
+below it rather than publishing a smaller cohort. You can raise this value,
+you cannot lower it. `positive_integer_env!` separately rejects a missing,
+zero, negative or non-integer value.
 
-The floor is 20 because the API quantises percentages into 10-point buckets,
-and a bucket only hides the underlying count while it is wider than one
-student's share of the cohort. Below 20 students the returned percentage
-inverts to an exact submitted count. Changing either number without the other
-breaks that, so `MINIMUM_SAFE_COHORT_SIZE` and `PERCENTAGE_BUCKET_SIZE` are
-asserted against each other in the API test suite.
-
-Verified against `ppi/student-progress-endpoint` @ 62ee2982.
+The floor is 21 because the API quantises percentages into 10-point buckets.
+At 20 students each student accounts for exactly half a bucket, leaving some
+rounded outputs that map to only one possible submitted count. At 21 students
+each student's share is smaller than half a bucket, so every published output
+maps to at least two possible counts, including the edge buckets. Changing
+either number without the other breaks that guarantee, so
+`MINIMUM_SAFE_COHORT_SIZE` and `PERCENTAGE_BUCKET_SIZE` are asserted together
+in the API test suite.
 
 `DF_PPI_STALE_AFTER_HOURS=48` is the local maximum snapshot age. A snapshot
 older than this is returned as stale, and the response withholds the
@@ -499,9 +499,12 @@ selected unit did not have suitable seeded projects, tasks, or target-grade
 cohorts.
 
 Seeded units are small, so most target-grade cohorts will sit under the floor
-of 20 and the endpoint will read as unavailable even once snapshots exist.
-That is correct behaviour, not a broken setup. To see a number, either seed a
-larger unit or raise `DF_PPI_MINIMUM_COHORT_SIZE` locally, never lower it.
+of 21 and the endpoint will read as unavailable even once snapshots exist.
+That is correct behaviour, not a broken setup. To see a number, seed or use a
+target-grade cohort that meets both the floor of 21 and the configured
+threshold; never lower the threshold below 21.
 
-Production deployments must supply separately reviewed values through their
-own configuration. These values are not secrets.
+The production Compose template supplies the same approved values through
+`production/.env.production`. These values are not secrets, but both must
+remain present because an enabled unit with an eligible snapshot returns 503
+when either setting is missing or invalid.
