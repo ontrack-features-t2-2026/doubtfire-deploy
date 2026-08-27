@@ -6,11 +6,10 @@
 > component revisions differently, `HANDOVER.md` and the current gitlinks are
 > authoritative.
 
-The later validation-only **prior-candidate** component lock is recorded in
-`ONTRACK-MVP-VALIDATION-LOCK-20260827.md`. It pins the focused 26 August
-candidate revisions on top of the merged Deploy handover while preserving all
-remaining acceptance and release blockers. It must be superseded when the
-final API/Web candidate SHAs are selected.
+The current final-candidate component lock is recorded in
+`ONTRACK-MVP-VALIDATION-LOCK-20260827.md`. It supersedes the focused 26 August
+prior candidate and pins API `f25945d` and Web `5255c27` while preserving the
+remaining browser, hosted-CI, security, and release gates.
 
 This file records the local integration assembled on 24 August 2026. It is the
 single local CPD, Peer Progress Indicator (PPI), Email Notifications (EN), and

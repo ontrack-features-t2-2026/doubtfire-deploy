@@ -1,84 +1,87 @@
 # OnTrack MVP validation lock — 2026-08-27
 
-This branch records the **prior verified 26 August candidate** as a
-reproducibility lock for the focused validation of
-Cross-Project Dashboard, Peer Progress Indicator, Email Notifications and
-Mobile/Web Push Notifications. It is **not** a release tag, deployment
-approval, production acceptance result or claim that every current feature
-head is included. API/Web final-candidate SHAs are expected to move; a successor
-commit must update both gitlinks and rerun the required evidence before anyone
-describes a Deploy ref as the final lock.
+This branch pins the final 27 August repository-side validation candidates for
+the Cross-Project Dashboard (CPD), Peer Progress Indicator (PPI), Email
+Notifications (EN), and Mobile/Web Push Notifications (MN). The gitlinks are
+the single integration input for subsequent fresh-clone and hosted-CI checks.
 
-## Prior candidate revisions
+This is a validation lock, not a release tag, production approval, security
+risk acceptance, or claim that browser/device work which still needs a human
+permission grant has already occurred.
+
+## Locked component revisions
 
 The branch starts from Deploy `11.0.x` at
-`5351009df475c4a3d4f788110b0197ce64b3d3f4`, the merge commit for Deploy
-pull request #12. That base already contains the reviewed production Compose,
-PPI configuration and workflow changes merged through Deploy pull requests
-#11, #12, #18, #24 and #25.
+`5351009df475c4a3d4f788110b0197ce64b3d3f4`, the merge commit for Deploy pull
+request #12. The base contains the reviewed production Compose, PPI
+configuration, and workflow changes merged through Deploy pull requests #11,
+#12, #18, #24, and #25.
 
-| Component | Branch used for validation | Gitlink revision |
+| Component | Branch | Gitlink revision |
 | --- | --- | --- |
-| API | `integration/ontrack-mvp-validation-20260826` | `75d7337fd0dd04f9b3a985f287e40f3ec6a467a0` |
-| Web | `integration/ontrack-mvp-validation-20260826` | `832d5e47eb26ff2e21ce25e576daa13b3054cc3e` |
+| API | `closure/api-ontrack-mvp-20260827` | `f25945d228c1a3b321412047dcfe304e43cb7658` |
+| Web | `closure/web-ontrack-mvp-20260827` | `5255c271778643cd6f972e3bce1d83ecdb2e292d` |
 
-Both component commits were published at the recorded branch names before this
-lock was created. The configured `.gitmodules` URLs point to the matching
-`ontrack-features-t2-2026` repositories.
+The configured `.gitmodules` URLs point to the matching
+`ontrack-features-t2-2026` repositories. The component branches must be
+published before a recursive-clone verification can succeed.
 
-## Evidence carried by this lock
+## Evidence attached to the lock
 
-The focused evidence was captured before this Deploy lock was assembled:
+### API
 
-- API `75d7337f`: CPD 17 runs / 80 assertions; PPI 103 runs / 5,608
-  assertions; email 77 runs / 428 assertions; push 72 runs / 295 assertions;
-  Zeitwerk passed.
-- Web `832d5e47`: lint passed; the parent candidate passed type-check; CPD
-  passed 55 tests with one todo; PPI passed 93 tests; notification/push passed
-  148 tests.
-- Exact candidate development images were built and scanned with Trivy 0.74.0.
-  The scan is not clean: the API image reported 35 Critical and 577 High
-  instances; the Web image reported 33 Critical and 394 High instances.
-- The Web production build is not green. Two attempts were killed during
-  esbuild/minification; the constrained retry exited 137.
-- Full API and Web suites were not run against these candidate revisions.
-- No real background Web Push receipt, previous-unit CPD success, eligible live
-  PPI browser result, current composed-stack acceptance or production approval
-  was recorded for this lock.
+- The CPD Previous/All request regression passes with the same 200 response
+  and 3-project/60-task/60-definition result as the prior candidate.
+- Batching and association preloading reduced that request from 453 SQL
+  statements to 38 (91.6% fewer) and from 4.218 seconds to 2.390 seconds
+  (43.3% faster) in the controlled local reproduction.
+- The focused regression passed 1 run / 6 assertions. Zeitwerk, changed-file
+  RuboCop, Ruby syntax, workflow syntax, and whitespace checks passed.
+- CI now uses eight deterministic process-isolated Rails test shards while
+  retaining the stable `unit-tests` required check. The manifest verifier
+  assigned all 129 discovered files exactly once, with no duplicates or
+  omissions; shards contain 15–17 files and 4,278–4,284 lines. Splitter tests
+  passed 5 runs / 29 assertions.
+- A local unsharded run reached the repository's LaTeX/JPlag helper-service
+  tests but could not access `/var/run/docker.sock` from the managed sandbox.
+  Those environment-bound errors are not represented as product regressions
+  or as a full-suite pass. Hosted CI, where the workflow provisions the
+  required services, remains authoritative.
 
-The complete logs, layer-attributed image reports, screenshots, privacy
-boundaries and exact rerun commands are in the published GitHub Guide evidence
-branch `docs/ontrack-mvp-evidence-20260826` at
-`c07f60f29c05364e1d643047456033c1bfae2b0d`.
+### Web
 
-## 27 August branch movement
+- Type-check and lint passed.
+- CPD: 98 passed / 1 existing todo; PPI: 109 passed; notifications/push: 177
+  passed.
+- The complete suite passed 605 tests across 103 files, with 1 existing todo
+  and no failures.
+- The Node 22 production build passed in 99.911 seconds.
 
-The validation candidates are intentionally frozen. After they were built and
-tested, feature and release branches moved and the previously open umbrella and
-follow-up pull requests were merged. At the `2026-08-27T09:49:05Z` audit:
+### Exact-image security scan
 
-- API `11.0.x` was `cb03f80bdba5a19d12a821d3cb7e11f19b1b5c7f`;
-- Web `11.0.x` was `9c618c3b04c272a34bceba62bba4c7a7627cf96d`;
-- API `feature/notifications` was
-  `ad708860d72f16dca0f4e7ab5aa6bf0310c08131`;
-- API `feature/peer-progress-indicator` was
-  `b0ac35f4083aaec66c10e1db4b3822655a66ae90`;
-- Web `feature/cross-unit` was
-  `9962e7ea171a2bf6d7a12be50874fa5c7ee77e21`;
-- Web `feature/peer-progress-indicator` was
-  `e12b5f8927830ab35f0243039a23bbf70e4a9cf3`; and
-- Web `feature/notifications` remained
-  `35ee9fa31c4b1c987e79c62cdfce93c270d30dc9`.
+- Web image `ontrack-mvp-closure-web:5255c271` has immutable digest
+  `sha256:ae5a90c845bbfec38e2dc1f84c5447fe4b301c189ea9c7f19d910c6b2c7bf23c`.
+  Trivy 0.74.0 reported 33 Critical, 395 High, 1,592 Medium, 1,197 Low, and
+  163 Unknown instances. The project npm layer contributed no findings and
+  `npm audit` reported zero; the 16 fixable language-package findings are in
+  the bundled npm from the Node 22 base image.
+- The final API image scan is recorded in the companion Guide evidence report.
 
-The newer branch heads are not substituted into this lock because the focused
-results above do not attest that composition. Equivalent patches may already
-exist in a candidate even when a later GitHub merge commit is not its ancestor;
-ancestry alone must not be used to infer feature absence or acceptance.
+The Web result is not clean and the image is not approved for production.
+Critical/High findings require remediation or an authorised, expiring risk
+acceptance followed by a rebuild and rescan.
 
-## Reproduction and acceptance gates
+## Historical prior candidate
 
-After this branch is published, verify that a fresh recursive clone can fetch
-both gitlinks:
+Deploy commit `c4c0d9a5` pinned the 26 August candidates API `75d7337f` and Web
+`832d5e47`. Deploy commit `32c7abb` correctly relabelled that composition as a
+prior-candidate reproducibility record. The gitlinks at this branch head
+supersede that composition; prior evidence remains historical and must not be
+used to imply that the final revisions were tested.
+
+## Reproduction and remaining gates
+
+After the three branches are published, verify a fresh recursive clone:
 
 ```sh
 git clone --recurse-submodules \
@@ -88,24 +91,23 @@ cd doubtfire-deploy
 git submodule status
 ```
 
-Expected component prefixes are `75d7337f` for API and `832d5e47` for Web.
-Then run the exact focused commands from the Guide evidence index and complete
-all of the following before proposing any release:
+Expected component prefixes are `f25945d` for API and `5255c27` for Web.
 
-1. refresh the integration candidate from the approved current bases and
-   explicitly disposition the branch movement above;
-2. run the complete API and Web suites plus a resource-sufficient Web
-   production build;
-3. validate every required Compose configuration and start the locked stack
-   from a fresh clone;
-4. reproduce active, previous and all-unit CPD with functional search;
-5. reproduce eligible and suppressed live PPI through the authorised API and
-   frontend adapter;
-6. queue and process a current email through Sidekiq into Mailpit;
-7. receive and open a privacy-safe background Web Push on every supported
-   browser/device combination;
-8. remediate, formally risk-accept and rescan the image findings; and
-9. attach named review, go/no-go, rollback and immutable-image evidence.
+Repository-side handover can proceed from this lock. Production release still
+requires all applicable gates below:
 
-Until a successor lock and those gates pass, use this branch only to reproduce
-the prior focused candidate composition and its known limitations.
+1. hosted API CI passes at the locked SHA and supplies measured eight-shard
+   timings;
+2. a fresh-clone Compose run confirms the locked stack;
+3. current browser evidence covers Active/Previous/All CPD, eligible and
+   suppressed live PPI, and Sidekiq-to-Mailpit email delivery;
+4. background Web Push is received and opened on each supported browser/device
+   after the tester grants notification permission;
+5. image Critical/High findings are remediated or formally risk-accepted and
+   the immutable release images are rescanned; and
+6. the release owner records go/no-go and rollback evidence.
+
+Requester approval for repository closure was recorded on 27 August 2026;
+named-leader confirmation was waived by the requester. This statement is not
+attributed to an uncontacted individual and is not a production release
+approval.
