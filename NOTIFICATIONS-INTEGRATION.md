@@ -92,6 +92,35 @@ docker compose -p notifications-demo \
 bash verify-notifications.sh
 ```
 
+The normal worker consumes `mailers` and `notifications`, the two user-facing
+channel queues. It deliberately does not consume `default`, because that queue
+also contains submission/PDF work whose supporting services are absent from
+this development stack.
+
+If the API checkout predates the dedicated `notifications` queue change, push
+jobs still enter `default`. On a fresh, disposable Redis/database only, a
+temporary compatibility worker can drain that older queue while doing the
+device check:
+
+```bash
+docker compose -p notifications-demo \
+  -f docker-compose.yml \
+  -f docker-compose.local-paths.yml \
+  run -d --name notifications-demo-push-worker --no-deps \
+  doubtfire-sidekiq bundle exec sidekiq -C config/sidekiq.yml -q default
+```
+
+Do not add `default` to the normal worker and do not use that fallback on a
+shared or previously used Redis instance. Stop and remove the temporary
+container after the device check:
+
+```bash
+docker stop notifications-demo-push-worker
+docker rm notifications-demo-push-worker
+```
+
+Current API heads do not need it.
+
 Do not use `down -v` unless the demo database can be discarded. The `-v` flag
 deletes the named database, Redis, and web dependency volumes.
 

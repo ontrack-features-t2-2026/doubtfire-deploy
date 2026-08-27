@@ -29,6 +29,10 @@ for c in notifications-demo-api notifications-demo-sidekiq notifications-demo-we
   state=$(docker inspect -f '{{.State.Running}}' "$c" 2>/dev/null || echo missing)
   check "$c is running" "true" "$state"
 done
+worker_queues=$(docker inspect -f '{{json .Config.Cmd}}' notifications-demo-sidekiq 2>/dev/null \
+  | python3 -c 'import json,sys; command=json.load(sys.stdin); print(",".join(command[index + 1] for index, value in enumerate(command[:-1]) if value == "-q"))' \
+  2>/dev/null || true)
+check "worker consumes only the notification channel queues" "mailers,notifications" "$worker_queues"
 
 echo
 echo "2. Ports answer"
@@ -107,14 +111,19 @@ cleanup=$(docker exec -e VERIFY_COMMENT_ID="$comment_id" notifications-demo-api 
 check "remove the synthetic comment and in-app notification" "true" "$cleanup"
 
 echo
-echo "9. The API queued cleanly and the worker has no failed notification mail"
-# Push and queue failures happen in the API process. SMTP delivery happens in
-# Sidekiq, so worker retry/dead sets are checked separately rather than assuming
-# the API log can report an asynchronous delivery failure.
+echo "9. The API queued cleanly and the worker has no failed channel delivery"
+# Queue hand-off failures happen in the API process. SMTP and push delivery
+# happen in Sidekiq, so worker logs and retry/dead sets are checked separately
+# rather than assuming the API log can report an asynchronous delivery failure.
 api_errs=$(docker logs --since 5m notifications-demo-api 2>&1 \
-  | grep -Ec "Failed to queue notification email|Failed to push to subscription|Refusing to push to subscription" \
+  | grep -Ec "Failed to queue notification (email|push)" \
   || true)
-check "notification queue/push errors in the last 5 minutes" "0" "$api_errs"
+check "notification queue errors in the last 5 minutes" "0" "$api_errs"
+
+worker_push_errs=$(docker logs --since 5m notifications-demo-sidekiq 2>&1 \
+  | grep -Ec "Failed to push to subscription|Refusing to push to subscription" \
+  || true)
+check "push delivery errors in the last 5 minutes" "0" "$worker_push_errs"
 
 retry_count=$(docker exec notifications-demo-sidekiq bash -c \
   "bundle exec rails runner 'require \"sidekiq/api\"; puts \"R::\" + Sidekiq::RetrySet.new.count { |job| job.klass == \"NotificationEmailJob\" }.to_s' 2>/dev/null" \
@@ -122,8 +131,16 @@ retry_count=$(docker exec notifications-demo-sidekiq bash -c \
 dead_count=$(docker exec notifications-demo-sidekiq bash -c \
   "bundle exec rails runner 'require \"sidekiq/api\"; puts \"R::\" + Sidekiq::DeadSet.new.count { |job| job.klass == \"NotificationEmailJob\" }.to_s' 2>/dev/null" \
   | grep -o 'R::.*' | cut -d: -f3)
+push_retry_count=$(docker exec notifications-demo-sidekiq bash -c \
+  "bundle exec rails runner 'require \"sidekiq/api\"; puts \"R::\" + Sidekiq::RetrySet.new.count { |job| job.klass == \"PushNotificationDeliveryJob\" }.to_s' 2>/dev/null" \
+  | grep -o 'R::.*' | cut -d: -f3)
+push_dead_count=$(docker exec notifications-demo-sidekiq bash -c \
+  "bundle exec rails runner 'require \"sidekiq/api\"; puts \"R::\" + Sidekiq::DeadSet.new.count { |job| job.klass == \"PushNotificationDeliveryJob\" }.to_s' 2>/dev/null" \
+  | grep -o 'R::.*' | cut -d: -f3)
 check "notification email jobs waiting to retry" "0" "$retry_count"
 check "notification email jobs in the dead set" "0" "$dead_count"
+check "push notification jobs waiting to retry" "0" "$push_retry_count"
+check "push notification jobs in the dead set" "0" "$push_dead_count"
 
 echo
 if [ "$fails" -eq 0 ]; then

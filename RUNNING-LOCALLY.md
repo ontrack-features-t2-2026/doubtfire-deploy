@@ -172,27 +172,25 @@ nothing, so you can safely put your own address on a test account.
 - Web inbox: http://localhost:8225
 - The api sends to it over SMTP on port 1025 inside Docker.
 
-The `doubtfire-sidekiq` service is there to take notification email off the api request
-path. It reads the `mailers` queue in Redis and delivers what it finds to Mailpit. The
-normal `up` command starts it.
+The `doubtfire-sidekiq` service takes provider delivery off the api request path. It
+reads email from `mailers` and Web Push from `notifications`; the normal `up` command
+starts it and sends caught email to Mailpit.
 
-**The api still sends notification email inline.** So the queue is empty and the worker has
-nothing to do yet. That changes when api PR #43 merges, which is the change that puts the
-email on the queue. Until then the worker being up or down makes no difference to your
-inbox.
+Both provider channels are asynchronous. If the worker is stopped, the in-app bell record
+still appears immediately, while email and push wait safely in Redis until it starts again.
 
-The worker only listens on the `mailers` queue, so it does not run the rest of the
-background jobs. That is on purpose. Several of them need a LaTeX container this stack does
-not have, and a worker that picked those up would fail every task submission and push the
-task back to "fix".
+The worker listens only on `mailers` and `notifications`, so it does not run the rest of
+the background jobs on `default`. That is on purpose. Several of them need a LaTeX
+container this stack does not have, and a worker that picked those up would fail every
+task submission and push the task back to "fix".
 
 Check the worker and its recent job output:
 
     docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml ps doubtfire-sidekiq
     docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml logs --tail 100 doubtfire-sidekiq
 
-Once delivery is queued, stopping the worker does not lose notification email. Starting it
-again processes the pending work:
+Stopping the worker does not lose queued notification email or push delivery. Starting it
+again processes the pending channel work:
 
     docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml stop doubtfire-sidekiq
     docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml start doubtfire-sidekiq
@@ -523,8 +521,9 @@ older than this is returned as stale, and the response withholds the
 percentage entirely rather than returning an old one.
 
 The combined local stack starts Redis and the Sidekiq worker. That worker only
-listens on the `mailers` queue, so it does not pick up `AggregatePeerProgressJob`;
-the sample task below does the work directly and does not depend on it.
+listens on the `mailers` and `notifications` queues, so it does not pick up
+`AggregatePeerProgressJob` from `default`; the sample task below does the work
+directly and does not depend on it.
 To create the privacy-safe PPI demo data deterministically, run the dedicated
 sample task in the same `ppi-live` project:
 

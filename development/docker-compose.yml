@@ -148,25 +148,29 @@ services:
     container_name: doubtfire-sidekiq
     image: lmsdoubtfire/doubtfire-api:8.0.x-dev
     build: ../doubtfire-api
-    # Deliberately narrow. Nothing in the api sets a queue, so all thirty-odd
-    # perform_async calls land on `default`. Taking `default` here would run
-    # AcceptSubmissionJob, which is enqueued on every task submission and calls
-    # convert_submission_to_pdf, which raises "LATEX_CONTAINER_NAME is not set"
-    # because development/ has no texlive service the way production/ does. The
-    # task would drop to "fix" with an automated comment on it, so submissions
-    # would break for everyone not working on notifications. Left unread in
-    # Redis, the way they are today, those jobs are harmless.
+    # Deliberately narrow. NotificationEmailJob names `mailers` and
+    # PushNotificationDeliveryJob names `notifications`, so this worker can
+    # deliver both user-facing channels without consuming `default`.
+    #
+    # Taking `default` here would run AcceptSubmissionJob, which is enqueued on
+    # every task submission and calls convert_submission_to_pdf. That raises
+    # "LATEX_CONTAINER_NAME is not set" because development/ has no texlive
+    # service the way production/ does. The task would drop to "fix" with an
+    # automated comment on it, so submissions would break for everyone not
+    # working on notifications. Left unread in Redis, as they are today, those
+    # jobs are harmless.
     #
     # `default` needs a texlive service and LATEX_CONTAINER_NAME first, or the
     # jobs that need one need a queue of their own. Until then anything we do
-    # want run here has to name `mailers`, the config/schedule.yml cron entries
-    # included: this worker registers them at startup and they enqueue on
-    # `default`, so they are scheduled but not run.
+    # want run here has to name one of the two channel queues. The
+    # config/schedule.yml cron entries are included: this worker registers them
+    # at startup and they enqueue on `default`, so they are scheduled but not
+    # run.
     #
     # `-q` is set here and not in config/sidekiq.yml because that file lives in
     # doubtfire-api, which this repo cannot keep in step. The config file is
     # still read for :concurrency and the command line wins over it.
-    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml", "-q", "mailers"]
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml", "-q", "mailers", "-q", "notifications"]
     volumes:
       - ../doubtfire-api/:/doubtfire
       - ../data/tmp:/doubtfire/tmp
