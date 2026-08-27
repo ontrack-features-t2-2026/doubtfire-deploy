@@ -1,12 +1,15 @@
 # OnTrack MVP validation lock — 2026-08-27
 
-This branch is a reproducibility lock for the focused 26 August validation of
+This branch records the **prior verified 26 August candidate** as a
+reproducibility lock for the focused validation of
 Cross-Project Dashboard, Peer Progress Indicator, Email Notifications and
 Mobile/Web Push Notifications. It is **not** a release tag, deployment
 approval, production acceptance result or claim that every current feature
-head is included.
+head is included. API/Web final-candidate SHAs are expected to move; a successor
+commit must update both gitlinks and rerun the required evidence before anyone
+describes a Deploy ref as the final lock.
 
-## Locked revisions
+## Prior candidate revisions
 
 The branch starts from Deploy `11.0.x` at
 `5351009df475c4a3d4f788110b0197ce64b3d3f4`, the merge commit for Deploy
@@ -104,5 +107,5 @@ all of the following before proposing any release:
 8. remediate, formally risk-accept and rescan the image findings; and
 9. attach named review, go/no-go, rollback and immutable-image evidence.
 
-Until those gates pass, use this branch only to reproduce the focused candidate
-composition and its known limitations.
+Until a successor lock and those gates pass, use this branch only to reproduce
+the prior focused candidate composition and its known limitations.
