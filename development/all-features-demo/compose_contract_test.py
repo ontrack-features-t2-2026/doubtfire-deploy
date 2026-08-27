@@ -150,5 +150,20 @@ require(
     services["doubtfire-api"]["image"] == services["doubtfire-sidekiq"]["image"],
     "API and Sidekiq must run the same image",
 )
+require(
+    services["doubtfire-sidekiq"]["command"]
+    == [
+        "bundle",
+        "exec",
+        "sidekiq",
+        "-C",
+        "config/sidekiq.yml",
+        "-q",
+        "mailers",
+        "-q",
+        "notifications",
+    ],
+    "development Sidekiq must consume both notification channels and not default",
+)
 
 print("All-features demo Compose contract checks passed.")

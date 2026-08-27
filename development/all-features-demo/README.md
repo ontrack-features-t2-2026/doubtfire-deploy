@@ -13,6 +13,10 @@ creates a browser push subscription. The PPI fixture includes visible working,
 ready-for-feedback, fix-and-resubmit, redo, complete, and fail segments while
 retaining every canonical status key in the API contract.
 
+The demo worker consumes the user-facing `mailers` and `notifications` queues.
+It deliberately leaves `default` untouched because this local stack does not
+include every service required by the general background-job workload.
+
 ## Start and populate
 
 This demo uses the familiar ports 4400, 3200, and 8225. Stop any older local
