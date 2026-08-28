@@ -1,4 +1,3 @@
-![Doubtfire Logo](http://puu.sh/lyClF/fde5bfbbe7.png)
 
 # Doubtfire Deploy
 
@@ -6,12 +5,24 @@ Doubtfire is a feedback-driven learning support system.
 
 The Doubtfire Deploy repository is used to manage releases of Doubtfire using containers.
 
+## Documentation
+
+- [Demo guide](DEMO.md)
+- [Release guide](RELEASING.md)
+- [Migration guide](MIGRATING.md)
+- [Notifications integration](NOTIFICATIONS-INTEGRATION.md)
+- [All-features integration](ALL-FEATURES-INTEGRATION.md)
+- [Development Docker files](development/development-dockerfiles.md)
+- [OnTrack Podman setup](docs/ONTRACK_PODMAN_SETUP.md)
+
 ## Table of Contents
 
 - [Doubtfire Deploy](#doubtfire-deploy)
+  - [Documentation](#documentation)
   - [Table of Contents](#table-of-contents)
   - [How to use this project for development](#how-to-use-this-project-for-development)
   - [How to use this project for deployment](#how-to-use-this-project-for-deployment)
+
 
 ## How to use this project for development
 
