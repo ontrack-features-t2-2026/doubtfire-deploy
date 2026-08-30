@@ -466,10 +466,6 @@ answers below turn on those two things. From `doubtfire-deploy/development`:
 
     docker compose -p notifications-demo -f docker-compose.yml -f docker-compose.local-paths.yml exec doubtfire-api bash -c "bundle exec rails console"
 
-- The compose files still carry image tags that say `8.0.x-dev`. If you already have an old
-  image cached under that name, Docker reuses it instead of building a new one. That is what
-  causes problems 1 and 2. It is why `--build` matters.
-
 ## Peer Progress Indicator configuration
 
 The local API container receives these non-secret development defaults:
