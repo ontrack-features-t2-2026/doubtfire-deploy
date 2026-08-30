@@ -199,7 +199,7 @@ services:
     container_name: doubtfire-web
     image: lmsdoubtfire/doubtfire-web:11.0.x-dev
     build: ../doubtfire-web
-    command: /bin/bash -c 'npm install && npm run start-compose'
+    command: /bin/bash -c 'npm install && npm start'
     ports:
       - "4200:4200"
     depends_on:
@@ -207,6 +207,7 @@ services:
     volumes:
       - ../doubtfire-web:/doubtfire-web
       - web_node_modules:/doubtfire-web/node_modules
+      - ./proxy.conf.docker.json:/doubtfire-web/proxy.conf.json:ro
 
 volumes:
   db_data:

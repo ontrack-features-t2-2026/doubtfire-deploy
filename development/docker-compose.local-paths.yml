@@ -66,10 +66,10 @@ services:
     build: ../../doubtfire-web
     ports: !override
       - "4400:4200"
-    # (1) Base compose runs `npm run start-compose`, but 11.0.x renamed it to `start`.
-    # (2) The repo's proxy.conf.json targets localhost:3000 (correct only for host-based
-    #     ng serve); inside the container the api is the `doubtfire-api` service, so we
-    #     overlay a docker-correct proxy config over it (the host repo file is untouched).
+    # The base compose now runs `npm start` and mounts proxy.conf.docker.json too, so the
+    # command and proxy volume below match the base. They are kept spelled out here only so
+    # this overlay reads as self-contained; the repo's own proxy.conf.json (which targets
+    # localhost:3000, correct only for host-based ng serve) is left untouched on the host.
     command: /bin/bash -c 'npm install && npm start'
     volumes:
       - ../../doubtfire-web:/doubtfire-web
