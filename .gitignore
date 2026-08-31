@@ -37,3 +37,8 @@ Temporary Items
 .apdisk
 
 # End of https://www.toptal.com/developers/gitignore/api/macos
+
+docker-compose.podman.yml.before-web-permission-fix
+docker-compose.podman.yml.before-web-fix
+docker-compose.podman.yml.before-ruby-fix
+docker-compose.podman.yml.before-db-volume
