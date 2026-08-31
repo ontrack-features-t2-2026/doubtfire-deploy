@@ -37,11 +37,17 @@ jobs:
       - name: Check isolation and PPI configuration contract
         run: python3 -B development/all-features-demo/compose_contract_test.py "${RUNNER_TEMP}/all-features-demo.json"
 
-      - name: Confirm guarded detailed-PPI demo support is pinned
+      - name: Confirm guarded mobile-feedback demo support is pinned
         run: |
           test "$(git -C doubtfire-api rev-parse HEAD)" = "$(git rev-parse HEAD:doubtfire-api)"
           test "$(git -C doubtfire-web rev-parse HEAD)" = "$(git rev-parse HEAD:doubtfire-web)"
           grep -Fq 'task all_features_demo_verify:' doubtfire-api/lib/tasks/all_features_demo.rake
+          grep -Fq "require Rails.root.join('lib/demo_data/mobile_feedback_scenario')" doubtfire-api/lib/demo_data/all_features_scenario.rb
+          grep -Fq "get '/demo/scenario'" doubtfire-api/app/api/demo_scenario_api.rb
+          grep -Fq 'lifecycle.fetch(:total_tasks) == 10' doubtfire-api/lib/demo_data/all_features_scenario.rb
+          grep -Fq 'lifecycle.fetch(:submitted_percentage).to_f.round == 60' doubtfire-api/lib/demo_data/all_features_scenario.rb
+          grep -Fq 'lifecycle.fetch(:completed_percentage).to_f.round == 10' doubtfire-api/lib/demo_data/all_features_scenario.rb
+          grep -Fq 'notifications_valid && group_valid' doubtfire-api/lib/demo_data/all_features_scenario.rb
           grep -Fq 'status_distribution' doubtfire-api/app/api/peer_progress_api.rb
           grep -Fq 'completed_percentage' doubtfire-api/app/api/peer_progress_api.rb
           grep -Fq 'display_peer_progress' doubtfire-api/db/migrate/20260824000003_add_detailed_peer_progress.rb
@@ -55,10 +61,11 @@ jobs:
           grep -Rq 'status_distribution' doubtfire-web/src/app/api doubtfire-web/src/app/demo
           grep -Fq 'completedPercentage' doubtfire-web/src/app/api/models/peer-progress-indicator.ts
           grep -Fq 'Display anonymous peer progress statistics' doubtfire-web/src/app/common/edit-profile-form/edit-profile-form.component.html
-          grep -Fq 'Insufficient cohort' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.ts
-          grep -Fq 'Advanced details protected' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.ts
-          grep -Fq 'Rounded total 90%' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.ts
-          grep -Fq 'Rounded total 110%' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.ts
+          grep -Fq 'DemoScenarioRegistryService' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.ts
+          grep -Fq '${API_URL}/demo/scenario' doubtfire-web/src/app/demo/demo-scenario-registry.service.ts
+          grep -Fq 'scenario.task_lifecycle.total_tasks' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.html
+          grep -Fq 'Unavailable — insufficient cohort' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.html
+          grep -Fq 'scenario.notification_hooks.length' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.html
           grep -Fq 'enableDemoTools: false' doubtfire-web/src/environments/environment.prod.ts
           grep -Fq 'environment.enableDemoTools === true && environment.production === false' doubtfire-web/src/app/demo/demo-mode.store.ts
           grep -Fq 'canActivate: [demoToolsGuard]' doubtfire-web/src/app/app.routes.ts
@@ -67,8 +74,10 @@ jobs:
           grep -Fq 'Independently privacy-rounded; values may not total 100%' doubtfire-web/src/app/projects/states/dashboard/directives/task-dashboard/directives/task-description-card/ppi-widget/ppi-widget.component.html
           grep -Fq 'usesStackedDistribution' doubtfire-web/src/app/projects/states/dashboard/directives/task-dashboard/directives/task-description-card/ppi-widget/ppi-widget.component.html
           grep -Fq '[style.width.%]="segment.percentage"' doubtfire-web/src/app/projects/states/dashboard/directives/task-dashboard/directives/task-description-card/ppi-widget/ppi-widget.component.html
-          grep -Fq 'ppiPreviewUsesStackedDistribution' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.html
-          grep -Fq '[style.width.%]="segment.percentage"' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.html
+          grep -Fq 'Rounded total 90%' doubtfire-web/src/app/demo/ppi-preview/ppi-preview.component.ts
+          grep -Fq 'Rounded total 110%' doubtfire-web/src/app/demo/ppi-preview/ppi-preview.component.ts
+          grep -Fq 'Advanced details protected' doubtfire-web/src/app/demo/ppi-preview/ppi-preview.component.ts
+          grep -Fq '[style.width.%]="segment.percentage"' doubtfire-web/src/app/demo/ppi-preview/ppi-preview.component.html
           if grep -Fq '<f-ppi-widget' doubtfire-web/src/app/projects/states/dashboard/directives/task-dashboard/directives/task-description-card/task-description-card.component.html; then
             echo 'PPI must remain below the submission card, not in the task description card.' >&2
             exit 1

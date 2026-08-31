@@ -5,13 +5,13 @@ and mobile/push demonstration runtime. It deliberately does not reuse the
 older `notifications-demo` database, Redis state, student work, temporary
 files, or Node dependencies.
 
-The matching API scenario is deterministic and development-only. It creates
-generic `demo_*` accounts with `.invalid` email addresses, a privacy-safe
-anonymous peer cohort with a convincing spread of task states, cross-unit tasks
-with useful deadline states, and a small curated notification set. It never
-creates a browser push subscription. The PPI fixture includes visible working,
-ready-for-feedback, fix-and-resubmit, redo, complete, and fail segments while
-retaining every canonical status key in the API contract.
+The matching API scenario is deterministic and development-only. One canonical
+registry creates generic `demo_*` accounts with `.invalid` email addresses, the
+exact ten-task lifecycle fixture (60% submitted and 10% complete), three
+privacy-safe PPI variants, one insufficient-cohort unit, seven distinct
+notification events, and one synthetic three-person group. It never creates a
+browser push subscription. The PPI responses retain every canonical status key
+and never expose raw counts, cohort sizes, names, usernames, or email addresses.
 
 The demo worker consumes the user-facing `mailers` and `notifications` queues.
 It deliberately leaves `default` untouched because this local stack does not
@@ -44,14 +44,12 @@ scenario verifier. The database has a readiness check, so the seed waits for a
 fresh MariaDB instance rather than racing it. Preparation is safe to run again
 whenever the scenario needs to be reset.
 
-The verifier fails unless the remaining cohort after excluding `demo_student`
-meets the configured peer floor, its snapshot and the student's project/task
-context are consistent and fresh, the compact completed percentage is present, the
-additive submitted compatibility metric is present, the complete canonical
-status distribution is present, and the representative detailed segments are
-non-zero after privacy quantisation. It exercises the same reader-subtraction
-and whole-vector ambiguity path used by the live API; it never prints peer
-identities, the cohort size, or raw counts.
+The verifier fails unless the ten-task lifecycle percentages, all three
+available PPI variants, the one insufficient-cohort state, all seven unique
+notification hooks, and the synthetic group membership are internally
+consistent. It exercises the same reader-subtraction and whole-vector ambiguity
+path used by the live API; it never prints peer identities, the cohort size, or
+raw counts.
 Status buckets are rounded independently for privacy and are not expected to
 sum to exactly 100%.
 
@@ -69,16 +67,23 @@ Then open:
 - API: <http://localhost:3200>
 - Mailpit: <http://localhost:8225>
 
-Sign in as `demo_student` with password `password`. The web account menu links
-to **Demo controls**, where the local demonstration data can be turned on and
-off. The switch does not grant browser notification permission or create a
-push subscription.
+Sign in as `demo_student` with password `password`. Only this account in this
+isolated database can read `GET /api/demo/scenario`; every other environment or
+account receives a generic 404. The response is `private, no-store`. The web
+keeps it in a dedicated in-memory adapter and never inserts it into project,
+unit, task, notification, or group caches.
+
+The account menu then links to **Demo controls**. Turning the walkthrough on
+changes only local presentation hooks. Turning it off is a genuine pass-through:
+normal API responses are not filtered, hidden, replaced, or cached differently.
+The switch does not reload the app, grant browser notification permission, or
+create a push subscription.
 
 For the requested Peer Progress walkthrough:
 
-1. Open **Demo controls**, turn **Demo mode** on, and allow the page to reload.
-2. Open **Foundations of OnTrack** (`DEMO10001`) and the **Due Within Seven
-   Days** (`DUE7`) task.
+1. Open **Demo controls** and turn **Demo** on.
+2. Use the labelled **Peer Progress Indicator** link. It opens **Foundations of
+   OnTrack** (`DEMO10001`) at **Due Within Seven Days** (`DUE7`).
 3. Scroll below the submission area. The compact Peer Progress Indicator is
    deliberately placed there rather than near the task heading.
 4. Use the small **Advanced** control on the indicator to reveal the coloured
@@ -86,20 +91,15 @@ For the requested Peer Progress walkthrough:
 5. Return to compact mode, then turn **Display anonymous peer progress
    statistics** off and on in profile settings. A new seeded account starts
    with this preference on.
-6. Use the local demo controls to show the insufficient-cohort and
-   advanced-vector-unavailable examples. They must explain why details are not
-   available and offer safe next actions without exposing a cohort count. The
-   90% and 110% rounded-vector previews demonstrate that independently rounded
-   statuses keep their own 0–100 scales rather than being visually
-   renormalised.
+6. Return to **Demo controls** to confirm the three available unit hooks and the
+   one labelled insufficient-cohort hook. Use the direct **Tasks and CPD**,
+   **Progress Burndown**, and **Notifications** links for the other walkthroughs.
 
-The task-level eligible state comes from the guarded local API seed. Labelled
-edge-state previews in the demo controls are client fixtures that can be present
-in the compiled web bundle, but they are runtime-inaccessible in production:
-production sets `enableDemoTools` to false, the demo route redirects through its
-production/demo guard, and the peer-progress service passes authorised API data
-through unchanged. Production therefore cannot activate a fabricated preview
-or substitute it for live peer progress.
+All runtime walkthrough values and dynamic routes come from the guarded API
+registry. Production sets `enableDemoTools` to false, and even a development web
+build does not expose the controls unless the guarded endpoint succeeds for the
+authenticated synthetic account. Production therefore cannot activate a
+fabricated preview or substitute it for live data.
 
 To build from isolated worktrees instead of the normal sibling checkouts:
 
