@@ -3,6 +3,7 @@ on:
   pull_request:
     paths: [".github/workflows/**"]
   push:
+    branches: ["11.0.x"]
     paths: [".github/workflows/**"]
 permissions:
   contents: read
@@ -13,9 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install and run actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
         run: |
-          # Pinned to a release tag rather than main so a change upstream cannot
-          # alter what CI enforces without a visible bump here.
-          curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash -o download-actionlint.bash
-          bash download-actionlint.bash 1.7.12
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl --fail --show-error --silent --location \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}" \
+            --output "${archive}"
+          echo "${ACTIONLINT_SHA256}  ${archive}" | sha256sum --check -
+          tar -xzf "${archive}" actionlint
           ./actionlint -color
