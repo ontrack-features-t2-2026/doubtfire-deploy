@@ -52,7 +52,7 @@ services:
 
   doubtfire-api:
     container_name: doubtfire-api
-    image: lmsdoubtfire/doubtfire-api:8.0.x-dev
+    image: lmsdoubtfire/doubtfire-api:11.0.x-dev
     build: ../doubtfire-api
     ports:
       - "3000:3000"
@@ -146,7 +146,7 @@ services:
 
   doubtfire-sidekiq:
     container_name: doubtfire-sidekiq
-    image: lmsdoubtfire/doubtfire-api:8.0.x-dev
+    image: lmsdoubtfire/doubtfire-api:11.0.x-dev
     build: ../doubtfire-api
     # Deliberately narrow. NotificationEmailJob names `mailers` and
     # PushNotificationDeliveryJob names `notifications`, so this worker can
@@ -197,9 +197,9 @@ services:
 
   doubtfire-web:
     container_name: doubtfire-web
-    image: lmsdoubtfire/doubtfire-web:8.0.x-dev
+    image: lmsdoubtfire/doubtfire-web:11.0.x-dev
     build: ../doubtfire-web
-    command: /bin/bash -c 'npm install; npm run start-compose'
+    command: /bin/bash -c 'npm install && npm start'
     ports:
       - "4200:4200"
     depends_on:
@@ -207,6 +207,7 @@ services:
     volumes:
       - ../doubtfire-web:/doubtfire-web
       - web_node_modules:/doubtfire-web/node_modules
+      - ./proxy.conf.docker.json:/doubtfire-web/proxy.conf.json:ro
 
 volumes:
   db_data:

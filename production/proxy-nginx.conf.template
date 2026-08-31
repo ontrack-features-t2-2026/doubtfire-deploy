@@ -54,6 +54,16 @@ server {
 
   client_max_body_size ${CLIENT_MAX_BODY_SIZE};
 
+  # Compress proxied API responses. Only application/json is listed: the static
+  # bundle (text/css, application/javascript) is already gzipped inside the web
+  # container by doubtfire-web/nginx.conf, and the notification list is the
+  # largest per-user JSON the app returns, so it gains the most here.
+  gzip on;
+  gzip_vary on;
+  gzip_proxied any;
+  gzip_min_length 1024;
+  gzip_types application/json;
+
   add_header Strict-Transport-Security "max-age=31536000" always;
   add_header X-Content-Type-Options "nosniff" always;
   add_header Referrer-Policy $doubtfire_referrer_policy always;
