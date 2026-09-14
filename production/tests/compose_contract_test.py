@@ -72,6 +72,40 @@ for service_name in ("apiserver", "sidekiq"):
 
 api_environment = services["apiserver"]["environment"]
 sidekiq_environment = services["sidekiq"]["environment"]
+teams_scope_keys = {
+    "DF_TEAMS_ANNOUNCEMENTS_ENABLED": "false",
+    "DF_TEAMS_TENANT_ID": "",
+    "DF_TEAMS_CHANNEL_MAPPINGS": "[]",
+}
+teams_credential_keys = {"DF_TEAMS_CLIENT_ID", "DF_TEAMS_CLIENT_SECRET"}
+teams_credentials = {key: "" for key in teams_credential_keys}
+if len(sys.argv) > 2 and sys.argv[2] == "--teams-configured":
+    teams_scope_keys.update({
+        "DF_TEAMS_ANNOUNCEMENTS_ENABLED": "true",
+        "DF_TEAMS_TENANT_ID": "11111111-1111-1111-1111-111111111111",
+        "DF_TEAMS_CHANNEL_MAPPINGS": '[{"unit_id":111,"team_id":"22222222-2222-2222-2222-222222222222","channel_id":"19:fixture@thread.tacv2","publisher_ids":["33333333-3333-3333-3333-333333333333"],"student_visible":true}]',
+    })
+    teams_credentials.update({
+        "DF_TEAMS_CLIENT_ID": "44444444-4444-4444-4444-444444444444",
+        "DF_TEAMS_CLIENT_SECRET": "fixture-only-teams-application-secret",
+    })
+for key, default in teams_scope_keys.items():
+    expected = default
+    require(api_environment.get(key) == expected, f"API received unexpected {key}")
+    require(sidekiq_environment.get(key) == expected, f"Sidekiq received unexpected {key}")
+for key in teams_credential_keys:
+    require(
+        sidekiq_environment.get(key) == teams_credentials[key],
+        f"Sidekiq received unexpected {key}",
+    )
+for service_name, service in services.items():
+    environment = service.get("environment", {})
+    if service_name != "sidekiq":
+        for key in teams_credential_keys:
+            require(key not in environment, f"{service_name} must not receive Teams credentials")
+    if service_name not in {"apiserver", "sidekiq"}:
+        for key in teams_scope_keys:
+            require(key not in environment, f"{service_name} must not receive Teams mappings")
 require(
     sidekiq_environment.get("DF_SIDEKIQ_CONCURRENCY") == "5",
     "Sidekiq must receive the validated concurrency value",

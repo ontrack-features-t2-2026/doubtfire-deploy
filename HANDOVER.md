@@ -2,7 +2,8 @@
 
 This is the authoritative handover checklist for the combined CPD, Peer
 Progress Indicator (PPI), Email Notifications, Mobile/Web Push Notifications,
-and retained demonstration package. `DEPLOYING.md` is the detailed production
+Unit Hub announcements and class calendars, and retained demonstration package.
+`UNIT-HUB.md` covers its optional Teams connection and demo. `DEPLOYING.md` is the detailed production
 runbook; `development/all-features-demo/README.md` is the disposable demo
 runbook. Older integration and PR-tracker documents are historical evidence and
 must not override this file or the pinned component revisions below.
@@ -40,6 +41,13 @@ to their pinned commits, and record those refs with the deploy release tag. A
 mutable integration branch is review evidence, not long-term source retention.
 The release is blocked until a genuinely fresh recursive clone can fetch all
 three retained revisions from the configured repository URLs.
+
+The Unit Hub additions are review candidates until the linked API, web and
+deployment pull requests receive the required human approvals. The ordinary
+production build disables demo tools. Staff-authored content works without
+Microsoft credentials; automatic Teams announcements remain off until the
+institution approves its app, source channels and publisher mappings. Follow
+[Unit Hub release and acceptance steps](UNIT-HUB.md) before activation.
 
 ## Supported production and demo boundaries
 
