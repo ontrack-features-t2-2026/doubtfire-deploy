@@ -62,6 +62,8 @@ jobs:
           grep -Fq 'completedPercentage' doubtfire-web/src/app/api/models/peer-progress-indicator.ts
           grep -Fq 'Display anonymous peer progress statistics' doubtfire-web/src/app/common/edit-profile-form/edit-profile-form.component.html
           grep -Fq 'DemoScenarioRegistryService' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.ts
+          # Match the literal TypeScript URL template; do not expand it in this shell.
+          # shellcheck disable=SC2016
           grep -Fq '${API_URL}/demo/scenario' doubtfire-web/src/app/demo/demo-scenario-registry.service.ts
           grep -Fq 'scenario.task_lifecycle.total_tasks' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.html
           grep -Fq 'Unavailable — insufficient cohort' doubtfire-web/src/app/demo/demo-controls/demo-controls.component.html
