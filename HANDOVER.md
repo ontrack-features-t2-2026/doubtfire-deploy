@@ -18,7 +18,7 @@ secrets, storage, monitoring, backup, privacy, and browser/device acceptance.
 | Component | Release branch | Pinned revision |
 | --- | --- | --- |
 | Deploy and handover | `feat/unit-hub-announcements-sessions` | Protected signed release tag; record the resolved commit externally |
-| API and Sidekiq | `feat/unit-hub-announcements-sessions` | `c7fcd6cf40eaba61bd5546ad2dee8da718492a02` |
+| API and Sidekiq | `feat/unit-hub-announcements-sessions` | `f9e00673ae5f6b5fd037d891776d93c6f8631add` |
 | Web application | `feat/unit-hub-announcements-sessions` | `7bf22b3270b5944bca67c9ea229d86f2b8c65da7` |
 
 A Git commit cannot contain its own final hash. After the accepted deploy commit
