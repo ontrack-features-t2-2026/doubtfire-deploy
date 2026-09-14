@@ -54,12 +54,26 @@ the release handover. Then use the one-command preparation path:
 ./demo.sh prepare
 ```
 
-`prepare` builds the selected sources, starts the isolated services, applies
-migrations, installs the API's standard roles and task states, recreates the
+`prepare` builds the selected sources, starts the isolated services, prepares
+the database, installs the API's standard roles and task states, recreates the
 deterministic records, restarts the application services, and runs the guarded
 scenario verifier. The database has a readiness check, so the seed waits for a
 fresh MariaDB instance rather than racing it. Preparation is safe to run again
 whenever the scenario needs to be reset.
+
+Before changing the database, preparation checks Rails development mode, the
+`all-features` profile, and both the configured and connected database name
+`doubtfire-all-features-demo`. A completely empty database (no tables or views)
+loads the API's checked-in schema. This avoids replaying old migrations whose
+index-renaming behaviour is incompatible with current MariaDB. An existing
+database uses normal migrations. The separate test database is never included.
+
+Preparation stops if a migration fails; it never replaces an existing or
+partially migrated database with a fresh schema. If an earlier fresh-demo
+attempt stopped on the legacy `20130613070051` index rename, preserve anything
+you need from that disposable demo, use the explicitly confirmed **Remove it
+completely** command below, then run `prepare` again. That removal deletes the
+demo's database and other isolated volumes.
 
 The verifier fails unless the ten-task lifecycle percentages, all three
 available PPI variants, the one insufficient-cohort state, all seven unique
@@ -136,6 +150,13 @@ demo seed task or web demo store is missing. A fresh clone can therefore use
 isolated worktrees without editing Compose files.
 
 ## Inspect or stop
+
+The bootstrap strategy has standalone checks for its guards, empty/existing
+database selection, test-database exclusion, and failure handling:
+
+```bash
+ruby bootstrap_strategy_test.rb
+```
 
 ```bash
 ./demo.sh status

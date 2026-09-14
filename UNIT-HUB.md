@@ -112,8 +112,10 @@ The responsive OnTrack form and detail view remain usable on phones.
 
 ## Demo walkthrough
 
-The existing **Demo controls** switch enables the synthetic Unit Hub preview in
-development. Open **Unit Hub** after enabling it. It demonstrates SIT111
+Start the isolated all-features runtime and sign in as `demo_student`
+(password `password`). **Demo controls** appears only when the development
+build receives the guarded scenario registry for that synthetic account.
+Enable its demo switch, then open **Unit Hub**; no reload is needed. It demonstrates SIT111
 announcements, two HelpHubs and a lecture, with clickable detail views and
 explicitly labelled demo calendar drafts/downloads. The synthetic student is
 not enrolled in SIT102, so SIT102 content is excluded. Demo content is labelled,
@@ -141,9 +143,9 @@ does not send an invitation. Review the date and attendees before deliberately
 pressing **Send** in Teams. The normal staff workflow is described above.
 
 Turn Demo mode off to return Unit Hub to the signed-in account's real API data.
-An empty unit has an empty state until its staff publish content. The hub's
-normal mode reads real authorised content even in a development build; unrelated
-older demo features may retain their existing quiet-mode behaviour.
+An empty unit has an empty state until its staff publish content. Normal mode reads real authorised content even in a development build. The
+combined demo no longer applies the older quiet-mode API mask. Demo availability
+and the toggle are scoped to the guarded scenario and signed-in user.
 
 For the supported isolated local stack:
 
