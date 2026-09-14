@@ -1,5 +1,11 @@
 # Removable all-features demo
 
+The **Unit Hub** walkthrough is also available through **Demo controls**.
+It shows synthetic unit announcements, HelpHubs, lectures and calendar actions.
+See [Unit Hub release and demo guide](../../UNIT-HUB.md) for normal-mode
+publishing, enrolment boundaries and calendar setup. Unit Hub fixtures are
+browser-only and are not inserted by the database seed.
+
 This folder owns the local CPD, PPI, email-notification, in-app-notification,
 and mobile/push demonstration runtime. It deliberately does not reuse the
 older `notifications-demo` database, Redis state, student work, temporary

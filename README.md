@@ -12,6 +12,7 @@ The Doubtfire Deploy repository is used to manage releases of Doubtfire using co
 - [Migration guide](MIGRATING.md)
 - [Notifications integration](NOTIFICATIONS-INTEGRATION.md)
 - [All-features integration](ALL-FEATURES-INTEGRATION.md)
+- [Unit Hub, Teams announcements and class calendars](UNIT-HUB.md)
 - [Development Docker files](development/development-dockerfiles.md)
 - [OnTrack Podman setup](docs/ONTRACK_PODMAN_SETUP.md)
 

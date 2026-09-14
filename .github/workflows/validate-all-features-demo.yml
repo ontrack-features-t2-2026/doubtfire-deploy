@@ -32,6 +32,13 @@ jobs:
         run: bash -n development/all-features-demo/demo.sh
 
       - name: Render merged Compose configuration
+        env:
+          # Deliberately poison ambient values: the demo must clear every one.
+          DF_TEAMS_ANNOUNCEMENTS_ENABLED: "true"
+          DF_TEAMS_TENANT_ID: fixture-tenant
+          DF_TEAMS_CHANNEL_MAPPINGS: '[{"unit_id":111}]'
+          DF_TEAMS_CLIENT_ID: fixture-client
+          DF_TEAMS_CLIENT_SECRET: fixture-secret
         run: development/all-features-demo/demo.sh config --format json > "${RUNNER_TEMP}/all-features-demo.json"
 
       - name: Check isolation and PPI configuration contract
