@@ -35,6 +35,16 @@ DF_DEMO_API_PATH="$(resolve_source_path API DF_DEMO_API_PATH doubtfire-api lib/t
 DF_DEMO_WEB_PATH="$(resolve_source_path web DF_DEMO_WEB_PATH doubtfire-web src/app/demo/demo-mode.store.ts)"
 export DF_DEMO_API_PATH DF_DEMO_WEB_PATH
 
+for required_path in \
+  "${DF_DEMO_API_PATH}/lib/demo_data/mobile_feedback_scenario.rb" \
+  "${DF_DEMO_API_PATH}/app/api/demo_scenario_api.rb" \
+  "${DF_DEMO_WEB_PATH}/src/app/demo/demo-scenario-registry.service.ts"; do
+  if [[ ! -f "${required_path}" ]]; then
+    printf 'The selected sources do not contain the guarded demo registry: %s\n' "${required_path}" >&2
+    exit 1
+  fi
+done
+
 compose=(
   docker compose
   -p all-features-demo
@@ -52,9 +62,32 @@ usage() {
 }
 
 seed_demo() {
-  "${compose[@]}" run --rm \
+  "${compose[@]}" run --rm -T \
     -e DF_DEMO_DATA_PROFILE=all-features \
-    doubtfire-api bundle exec rake db:migrate db:init db:all_features_demo
+    doubtfire-api bundle exec rails runner - <<'DEMO_BOOTSTRAP_RUBY'
+require Rails.root.join('lib/demo_data/all_features_scenario')
+
+# Run the existing development/profile/database guards before any schema or
+# seed task. Also verify the actual connection, not only its configuration.
+DemoData::AllFeaturesScenario.new(reference_time: Time.zone.now).guard!
+connection = ActiveRecord::Base.connection
+unless connection.select_value('SELECT DATABASE()') == DemoData::AllFeaturesScenario::DATABASE_NAME
+  abort 'Refusing demo preparation: the connected database is not the dedicated demo database.'
+end
+
+# Rails otherwise also loads the test schema when running in development.
+ENV['SKIP_TEST_DATABASE'] = '1'
+Rails.application.load_tasks
+
+# Old migrations cannot reliably bootstrap a new database on current MariaDB.
+# Load the checked-in schema only when there are no tables or views. Existing
+# and partially migrated databases must migrate normally; never replace their
+# schema after an error.
+task = connection.data_sources.empty? ? 'db:schema:load' : 'db:migrate'
+Rake::Task[task].invoke
+Rake::Task['db:init'].invoke
+Rake::Task['db:all_features_demo'].invoke
+DEMO_BOOTSTRAP_RUBY
 }
 
 verify_demo() {
@@ -67,7 +100,7 @@ case "${1:-}" in
   prepare)
     # Build first so Compose cannot satisfy the guarded seed from an unrelated
     # mutable local image. Start only infrastructure until the brand-new
-    # database is migrated and seeded; application readers start afterwards.
+    # database is prepared and seeded; application readers start afterwards.
     "${compose[@]}" build doubtfire-api doubtfire-web
     "${compose[@]}" up -d dev-db redis-sidekiq mailpit
     seed_demo
