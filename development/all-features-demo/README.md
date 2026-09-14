@@ -17,6 +17,17 @@ The demo worker consumes the user-facing `mailers` and `notifications` queues.
 It deliberately leaves `default` untouched because this local stack does not
 include every service required by the general background-job workload.
 
+The pinned sources include the reviewed API integration
+[#159](https://github.com/ontrack-features-t2-2026/doubtfire-api/pull/159)
+and matching web/mobile integration
+[#217](https://github.com/ontrack-features-t2-2026/doubtfire-web/pull/217).
+These keep the DOCX, submission-state, notification deletion and additional-email
+contracts together. The theme redesign in web #192 is reviewed separately.
+This notification demo does not validate PDF conversion: use the full submission
+worker and LaTeX services to check DOCX/PDF conversion and failed-submission
+retries. Installed-app behaviour, physical push delivery and external calendar
+or email delivery also need their own smoke checks before release.
+
 ## Start and populate
 
 This demo uses the familiar ports 4400, 3200, and 8225. Stop any older local
