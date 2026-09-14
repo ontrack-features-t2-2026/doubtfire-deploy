@@ -8,6 +8,12 @@ checked against current enrolment on the API, including for calendar feeds.
 The web application and installed mobile PWA use the same feature. These three
 repositories do not contain a separate native iOS or Android application.
 
+Announcement titles and **Read full announcement** open the complete post in a
+detail view. Session titles and **View full details** open the description,
+times, joining link and calendar choices. These views use the current authorised
+feed and clear their selected content on route, unit, demo-mode or feed changes.
+They do not introduce a separate public sharing route.
+
 ## Release and deployment
 
 Use the API and web revisions pinned by this deployment change together. The
@@ -42,15 +48,84 @@ tables. Do not drop the new tables as a routine rollback: that would remove
 staff-authored content. Restore the old images using the existing deployment
 procedure and retain a normal database backup.
 
+## Study essentials deployment choice
+
+Unit Hub includes **Study essentials** and is available from the home-page
+link. This fork explicitly
+sets `studyEssentialsProfile` to `'deakin'` in the web repository's
+`src/app/study-essentials/study-essentials.config.ts`. The same choice applies
+to normal production, development and the demo. An operator deploying for a
+different institution should set it to `''` before building to hide the panel,
+or supply a reviewed institution profile. Membership is never inferred from
+email addresses, unit codes or the OnTrack product name.
+
+The Deakin profile contains public entry points for DeakinSync, CloudDeakin,
+StudentConnect, timetable guidance, the library and Student Central. The
+destinations retain their own sign-in and permissions. The links contain no
+OnTrack credentials, enrolment data or unit meeting details. Unit-specific
+course and meeting links belong to the authorised unit content. The timetable
+link uses Deakin's maintained guidance page, which points to the current STAR
+entry point, rather than a year-dependent application URL.
+
+## Prepare a Teams meeting
+
+Assigned teaching staff can use **Make a Teams meeting** below the session
+editor or in a session's detail view. Enter a title, date, start/end time and
+time zone. **Open Teams draft** prefills a Teams invitation with the subject,
+description and resolved times. Optional attendees use their university sign-in
+email addresses. Opening the draft preserves the OnTrack form. Shortening the
+Teams details in the composer changes only that invitation draft.
+
+The user reviews the invitation and presses **Send** in Teams. OnTrack does
+not send it or create the meeting in the background. After sending, copy the
+new Teams join URL into the OnTrack session and save/publish it. Existing join
+or source links are not automatically copied into a new invitation. This flow
+does not need Graph credentials or the optional announcement connection;
+Microsoft may ask the user to sign in to Teams.
+
+The URL opens one occurrence. For a weekly HelpHub, set the repeat pattern and
+last date in Teams before sending, and keep those dates aligned with OnTrack.
+Location is included in plain description text because the scheduling URL does
+not support a location field. OnTrack bounds draft URL length and attendee
+count; if necessary, shorten the draft details or add further attendees in Teams.
+The helper converts resolved times to explicit UTC instants so the browser's
+own time zone does not change the scheduled time.
+
+See Microsoft's [supported scheduling parameters](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/deep-link-workflow)
+and [HTTPS app/browser chooser](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/deep-links).
+Mobile clients may not open the same scheduling form. If the draft fails to
+open on a phone, use a desktop browser or copy the displayed details into Teams.
+The responsive OnTrack form and detail view remain usable on phones.
+
 ## Demo walkthrough
 
 The existing **Demo controls** switch enables the synthetic Unit Hub preview in
 development. Open **Unit Hub** after enabling it. It demonstrates SIT111
-announcements, HelpHub and lecture sessions, and explicitly labelled demo
-calendar drafts/downloads. No real meeting is opened from a sample join link. The synthetic
-student is not enrolled in SIT102, so SIT102 content is excluded. Demo content
-is labelled, is held in the browser only, and cannot be saved through the staff
-forms or written to the live API.
+announcements, two HelpHubs and a lecture, with clickable detail views and
+explicitly labelled demo calendar drafts/downloads. The synthetic student is
+not enrolled in SIT102, so SIT102 content is excluded. Demo content is labelled,
+is held in the browser only, and cannot be saved through staff forms or written
+to the live API. Sample dates are fictional, not an official timetable.
+
+To demonstrate joining, open **Demo controls → Use your own HelpHub links**.
+Add an actual Teams joining URL supplied by the presenter for either or both
+HelpHubs, choose **Save demo links**, then reopen Unit Hub. These explicit links
+enable **Join hosted demo** and are included in DEMO calendar copies with a
+notice that the dates are fictional. The lecture has no fabricated join URL.
+With no configured hosted link, a sample session offers no joining action.
+Opening a Google Calendar draft shares its chosen details with Google.
+
+Only supported HTTPS Teams joining URLs are accepted. They remain in the
+current browser tab's session storage and are cleared by **Clear demo links**,
+sign-out or the end of that tab session. Turning demo mode off hides them but
+retains them for another walkthrough in that tab. Never place actual meeting
+URLs in committed fixtures, environment examples or public screenshots. They
+are not sent to the OnTrack API or enabled in a production build.
+
+**Try the Teams meeting draft** in Demo controls is also optional. It opens a
+real Teams invitation draft with a **DEMO** title and fictional details; it
+does not send an invitation. Review the date and attendees before deliberately
+pressing **Send** in Teams. The normal staff workflow is described above.
 
 Turn Demo mode off to return Unit Hub to the signed-in account's real API data.
 An empty unit has an empty state until its staff publish content. The hub's
@@ -72,7 +147,8 @@ configuration for the ordinary production build.
 
 The demo Compose overlay explicitly disables Teams import and clears its
 tenant, mappings and application credentials, even if values were set elsewhere.
-The browser demo uses fictional content and does not connect to Microsoft.
+The browser demo imports no Microsoft content. Microsoft is opened only when
+the user chooses a configured hosted meeting link or the Teams draft action.
 
 ## Calendar choices
 

@@ -2,7 +2,7 @@
 
 This is the authoritative handover checklist for the combined CPD, Peer
 Progress Indicator (PPI), Email Notifications, Mobile/Web Push Notifications,
-Unit Hub announcements and class calendars, and retained demonstration package.
+Unit Hub announcements, class calendars, Teams meeting drafts and study essentials, and retained demonstration package.
 `UNIT-HUB.md` covers its optional Teams connection and demo. `DEPLOYING.md` is the detailed production
 runbook; `development/all-features-demo/README.md` is the disposable demo
 runbook. Older integration and PR-tracker documents are historical evidence and
