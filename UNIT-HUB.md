@@ -8,11 +8,24 @@ checked against current enrolment on the API, including for calendar feeds.
 The web application and installed mobile PWA use the same feature. These three
 repositories do not contain a separate native iOS or Android application.
 
-Announcement titles and **Read full announcement** open the complete post in a
-detail view. Session titles and **View full details** open the description,
-times, joining link and calendar choices. These views use the current authorised
-feed and clear their selected content on route, unit, demo-mode or feed changes.
-They do not introduce a separate public sharing route.
+Click anywhere on an announcement or session card, including its text, date or
+blank space, to open its full detail view. Separate Join, original-source and
+calendar buttons keep their own actions. The title is a native keyboard button
+with a focus outline around the card. Study essentials are full-card links.
+These views use the current authorised feed and clear their selected content
+on route, unit, demo-mode or feed changes. They do not introduce a separate
+public sharing route.
+
+The pinned web revision also corrects dark-mode readability across the
+cross-project and progress dashboards, chart labels, planner, tutorial table,
+Calendar and About dialogs, Teams composer, and demo PPI/push previews. These
+surfaces use the existing theme colours, and the planner has an explicit English
+locale and empty state. Normal and demo builds share the corrections.
+
+Acceptance should include light and dark themes, keyboard/card actions, readable
+calendar tabs and Download a copy, and phone-width layouts. The local browser
+checks use synthetic accounts and include 320 CSS pixels; physical iOS/Android
+and institution-specific acceptance remain part of the normal release gates.
 
 ## Release and deployment
 
