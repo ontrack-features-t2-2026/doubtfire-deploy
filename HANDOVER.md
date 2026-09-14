@@ -2,7 +2,7 @@
 
 This is the authoritative handover checklist for the combined CPD, Peer
 Progress Indicator (PPI), Email Notifications, Mobile/Web Push Notifications,
-Unit Hub announcements and class calendars, and retained demonstration package.
+Unit Hub announcements, class calendars, Teams meeting drafts and study essentials, and retained demonstration package.
 `UNIT-HUB.md` covers its optional Teams connection and demo. `DEPLOYING.md` is the detailed production
 runbook; `development/all-features-demo/README.md` is the disposable demo
 runbook. Older integration and PR-tracker documents are historical evidence and
@@ -19,7 +19,7 @@ secrets, storage, monitoring, backup, privacy, and browser/device acceptance.
 | --- | --- | --- |
 | Deploy and handover | `feat/unit-hub-announcements-sessions` | Protected signed release tag; record the resolved commit externally |
 | API and Sidekiq | `feat/unit-hub-announcements-sessions` | `f9e00673ae5f6b5fd037d891776d93c6f8631add` |
-| Web application | `feat/unit-hub-announcements-sessions` | `7bf22b3270b5944bca67c9ea229d86f2b8c65da7` |
+| Web application | `feat/unit-hub-announcements-sessions` | `043d5841d48731e8de880bb64a710e34748dad79` |
 
 A Git commit cannot contain its own final hash. After the accepted deploy commit
 is tagged under the protected release policy, resolve that signed tag to a
