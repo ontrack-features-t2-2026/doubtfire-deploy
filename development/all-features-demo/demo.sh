@@ -35,6 +35,16 @@ DF_DEMO_API_PATH="$(resolve_source_path API DF_DEMO_API_PATH doubtfire-api lib/t
 DF_DEMO_WEB_PATH="$(resolve_source_path web DF_DEMO_WEB_PATH doubtfire-web src/app/demo/demo-mode.store.ts)"
 export DF_DEMO_API_PATH DF_DEMO_WEB_PATH
 
+for required_path in \
+  "${DF_DEMO_API_PATH}/lib/demo_data/mobile_feedback_scenario.rb" \
+  "${DF_DEMO_API_PATH}/app/api/demo_scenario_api.rb" \
+  "${DF_DEMO_WEB_PATH}/src/app/demo/demo-scenario-registry.service.ts"; do
+  if [[ ! -f "${required_path}" ]]; then
+    printf 'The selected sources do not contain the guarded demo registry: %s\n' "${required_path}" >&2
+    exit 1
+  fi
+done
+
 compose=(
   docker compose
   -p all-features-demo
