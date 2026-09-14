@@ -47,6 +47,11 @@ for service_name, container_name in expected_containers.items():
 expected_environment = {
     "RAILS_ENV": "development",
     "DF_DEMO_DATA_PROFILE": "all-features",
+    "DF_TEAMS_ANNOUNCEMENTS_ENABLED": "false",
+    "DF_TEAMS_CHANNEL_MAPPINGS": "[]",
+    "DF_TEAMS_TENANT_ID": "",
+    "DF_TEAMS_CLIENT_ID": "",
+    "DF_TEAMS_CLIENT_SECRET": "",
     "DF_DEV_DB_DATABASE": "doubtfire-all-features-demo",
     "DF_TEST_DB_DATABASE": "doubtfire-all-features-demo-test",
     "DF_PRODUCTION_DB_DATABASE": "doubtfire-all-features-demo",

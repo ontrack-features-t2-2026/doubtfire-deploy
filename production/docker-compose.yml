@@ -62,6 +62,11 @@ x-api-environment: &api-environment
   DF_STUDENT_WORK_DIR: /student-work
 
 x-live-feature-environment: &live-feature-environment
+  # Mapping metadata scopes imported announcements on both API and worker.
+  # Only the worker receives the Microsoft application credentials below.
+  DF_TEAMS_ANNOUNCEMENTS_ENABLED: ${DF_TEAMS_ANNOUNCEMENTS_ENABLED:-false}
+  DF_TEAMS_TENANT_ID: ${DF_TEAMS_TENANT_ID:-}
+  DF_TEAMS_CHANNEL_MAPPINGS: ${DF_TEAMS_CHANNEL_MAPPINGS:-[]}
   DF_PPI_MINIMUM_COHORT_SIZE: ${DF_PPI_MINIMUM_COHORT_SIZE:?Set DF_PPI_MINIMUM_COHORT_SIZE in .env.production}
   DF_PPI_STALE_AFTER_HOURS: ${DF_PPI_STALE_AFTER_HOURS:?Set DF_PPI_STALE_AFTER_HOURS in .env.production}
   DOUBTFIRE_VAPID_PUBLIC_KEY: ${DOUBTFIRE_VAPID_PUBLIC_KEY:?Set DOUBTFIRE_VAPID_PUBLIC_KEY in .env.production}
@@ -256,6 +261,8 @@ services:
     image: ${DOUBTFIRE_APP_IMAGE:?Set DOUBTFIRE_APP_IMAGE to an immutable image digest}
     environment:
       <<: [*api-environment, *live-feature-environment]
+      DF_TEAMS_CLIENT_ID: ${DF_TEAMS_CLIENT_ID:-}
+      DF_TEAMS_CLIENT_SECRET: ${DF_TEAMS_CLIENT_SECRET:-}
       DF_SIDEKIQ_CONCURRENCY: ${DF_SIDEKIQ_CONCURRENCY:?Set DF_SIDEKIQ_CONCURRENCY in .env.production}
       DOCKER_HOST: tcp://docker-socket-proxy:2375
       LATEX_BUILD_PATH: /texlive/shell/latex_build.sh

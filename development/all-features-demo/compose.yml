@@ -6,6 +6,12 @@
 
 x-all-features-demo-environment: &all-features-demo-environment
   DF_DEMO_DATA_PROFILE: all-features
+  # Demo must never inherit a real university Teams connection.
+  DF_TEAMS_ANNOUNCEMENTS_ENABLED: "false"
+  DF_TEAMS_CHANNEL_MAPPINGS: "[]"
+  DF_TEAMS_TENANT_ID: ""
+  DF_TEAMS_CLIENT_ID: ""
+  DF_TEAMS_CLIENT_SECRET: ""
   # Keep the disposable demo on the same fail-closed PPI policy as the checked
   # in production example. The cohort floor counts remaining peers after the
   # authenticated reader is excluded. These values are repeated deliberately

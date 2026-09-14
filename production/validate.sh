@@ -47,7 +47,13 @@ while IFS= read -r line || [[ -n "${line}" ]]; do
   fi
 
   [[ "${value}" != [[:space:]]* && "${value}" != *[[:space:]] ]] || fail "${ENV_FILE}:${line_number} has leading or trailing whitespace"
-  [[ "${value}" != *\"* && "${value}" != *\'* ]] || fail "${ENV_FILE}:${line_number} contains a quote; use an unquoted literal value"
+  if [[ "${key}" == DF_TEAMS_CHANNEL_MAPPINGS ]]; then
+    # This one value is a literal JSON array. Embedded double quotes are JSON,
+    # not shell syntax; never source or evaluate the environment file.
+    [[ "${value}" != *\'* ]] || fail "DF_TEAMS_CHANNEL_MAPPINGS must be a JSON array without surrounding quotes"
+  else
+    [[ "${value}" != *\"* && "${value}" != *\'* ]] || fail "${ENV_FILE}:${line_number} contains a quote; use an unquoted literal value"
+  fi
   [[ "${value}" != *'#'* ]] || fail "${ENV_FILE}:${line_number} contains #; inline comments are not allowed"
   [[ "${value}" != *'\'* ]] || fail "${ENV_FILE}:${line_number} contains a backslash; escaped values are not allowed"
   [[ "${value}" != *'$'* ]] || fail "${ENV_FILE}:${line_number} contains a dollar sign; use literal generated values without Compose interpolation"
@@ -395,6 +401,29 @@ case "${lowered}" in
   ""|0|false|no) ;;
   *) fail "OVERSEER_ENABLED must remain disabled; this stack does not provide its runner contract" ;;
 esac
+
+get_value DF_TEAMS_ANNOUNCEMENTS_ENABLED || true
+teams_enabled="${VALUE:-false}"
+case "${teams_enabled}" in
+  true|false) ;;
+  *) fail "DF_TEAMS_ANNOUNCEMENTS_ENABLED must be true or false" ;;
+esac
+get_value DF_TEAMS_CHANNEL_MAPPINGS || true
+teams_mappings="${VALUE:-[]}"
+if [[ "${teams_enabled}" == true || "${teams_mappings}" != '[]' ]]; then
+  command -v python3 >/dev/null 2>&1 || fail "python3 is required for Teams mapping validation"
+  if ! printf '%s' "${teams_mappings}" | python3 "${SCRIPT_DIR}/validate-teams-mappings.py" "${teams_enabled}"; then
+    fail "Teams channel mappings are invalid"
+  fi
+fi
+if [[ "${teams_enabled}" == true ]]; then
+  for key in DF_TEAMS_TENANT_ID DF_TEAMS_CLIENT_ID; do
+    reject_placeholder "${key}"
+    [[ "${VALUE}" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]] || fail "${key} must be a Microsoft directory GUID"
+  done
+  reject_placeholder DF_TEAMS_CLIENT_SECRET
+  (( ${#VALUE} <= 4096 )) || fail "DF_TEAMS_CLIENT_SECRET is too long"
+fi
 
 [[ -r "${SCRIPT_DIR}/docker-socket-proxy.cfg" ]] || fail "docker-socket-proxy.cfg is missing or unreadable"
 

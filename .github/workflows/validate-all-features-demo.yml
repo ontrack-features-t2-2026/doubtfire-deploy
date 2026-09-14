@@ -31,7 +31,22 @@ jobs:
       - name: Check helper shell syntax
         run: bash -n development/all-features-demo/demo.sh
 
+      - name: Set up Ruby for bootstrap checks
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1
+        with:
+          ruby-version: '3.4'
+
+      - name: Check guarded database bootstrap strategy
+        run: ruby development/all-features-demo/bootstrap_strategy_test.rb
+
       - name: Render merged Compose configuration
+        env:
+          # Deliberately poison ambient values: the demo must clear every one.
+          DF_TEAMS_ANNOUNCEMENTS_ENABLED: "true"
+          DF_TEAMS_TENANT_ID: fixture-tenant
+          DF_TEAMS_CHANNEL_MAPPINGS: '[{"unit_id":111}]'
+          DF_TEAMS_CLIENT_ID: fixture-client
+          DF_TEAMS_CLIENT_SECRET: fixture-secret
         run: development/all-features-demo/demo.sh config --format json > "${RUNNER_TEMP}/all-features-demo.json"
 
       - name: Check isolation and PPI configuration contract

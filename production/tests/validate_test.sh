@@ -158,6 +158,11 @@ DF_ENCRYPTION_KEY_DERIVATION_SALT=salt_0123456789abcdef0123456789abcdef
 DF_SIDEKIQ_CONCURRENCY=5
 DF_PPI_MINIMUM_COHORT_SIZE=21
 DF_PPI_STALE_AFTER_HOURS=48
+DF_TEAMS_ANNOUNCEMENTS_ENABLED=false
+DF_TEAMS_TENANT_ID=
+DF_TEAMS_CHANNEL_MAPPINGS=[]
+DF_TEAMS_CLIENT_ID=
+DF_TEAMS_CLIENT_SECRET=
 DOUBTFIRE_VAPID_PUBLIC_KEY=BGmEh2DUs9VeJOXeMyaM4Lp5dGpe7qvFrcZn6o-3YMmQdl_mU6T4G0f4ZUfpmMb-NVNK5PaxmV8fcom_r65BujA
 DOUBTFIRE_VAPID_PRIVATE_KEY=seHBhwGDAn88u-5mzxBV-6jn2cSn_zFp2BpkLDn95uw
 DOUBTFIRE_VAPID_SUBJECT=mailto:push-operations@test.edu.au
@@ -252,6 +257,30 @@ if grep -Fq ambient-override "${FIXTURE_DIR}/compose.json"; then
 fi
 printf 'ok - ambient Compose overrides are ignored\n'
 python3 -B "${SCRIPT_DIR}/compose_contract_test.py" "${FIXTURE_DIR}/compose.json"
+
+teams_env="${FIXTURE_DIR}/teams.env"
+cp "${BASE_ENV}" "${teams_env}"
+replace_value "${teams_env}" DF_TEAMS_ANNOUNCEMENTS_ENABLED true
+replace_value "${teams_env}" DF_TEAMS_TENANT_ID 11111111-1111-1111-1111-111111111111
+replace_value "${teams_env}" DF_TEAMS_CLIENT_ID 44444444-4444-4444-4444-444444444444
+replace_value "${teams_env}" DF_TEAMS_CLIENT_SECRET fixture-only-teams-application-secret
+replace_value "${teams_env}" DF_TEAMS_CHANNEL_MAPPINGS '[{"unit_id":111,"team_id":"22222222-2222-2222-2222-222222222222","channel_id":"19:fixture@thread.tacv2","publisher_ids":["33333333-3333-3333-3333-333333333333"],"student_visible":true}]'
+"${PRODUCTION_DIR}/validate.sh" "${teams_env}" >/dev/null
+"${PRODUCTION_DIR}/compose.sh" --env-file "${teams_env}" config --format json > "${FIXTURE_DIR}/teams-compose.json"
+python3 -B "${SCRIPT_DIR}/compose_contract_test.py" "${FIXTURE_DIR}/teams-compose.json" --teams-configured
+printf 'ok - Teams metadata is shared only by API and worker; credentials are worker-only\n'
+
+ordinary_base_env="${BASE_ENV}"
+BASE_ENV="${teams_env}"
+expect_failure teams-missing-tenant DF_TEAMS_TENANT_ID '' "must be set"
+expect_failure teams-invalid-client DF_TEAMS_CLIENT_ID invalid-guid "directory GUID"
+expect_failure teams-missing-secret DF_TEAMS_CLIENT_SECRET '' "must be set"
+expect_failure teams-no-mappings DF_TEAMS_CHANNEL_MAPPINGS '[]' "Teams channel mappings are invalid"
+expect_failure teams-malformed-mapping DF_TEAMS_CHANNEL_MAPPINGS '[invalid]' "Teams channel mappings are invalid"
+expect_failure teams-private-channel DF_TEAMS_CHANNEL_MAPPINGS '[{"unit_id":111,"team_id":"22222222-2222-2222-2222-222222222222","channel_id":"19:fixture@thread.tacv2","publisher_ids":["33333333-3333-3333-3333-333333333333"],"student_visible":false}]' "Teams channel mappings are invalid"
+expect_failure teams-missing-publisher DF_TEAMS_CHANNEL_MAPPINGS '[{"unit_id":111,"team_id":"22222222-2222-2222-2222-222222222222","channel_id":"19:fixture@thread.tacv2","student_visible":true}]' "Teams channel mappings are invalid"
+expect_failure teams-invalid-enabled DF_TEAMS_ANNOUNCEMENTS_ENABLED yes "must be true or false"
+BASE_ENV="${ordinary_base_env}"
 
 grep -Fq 'resolver 127.0.0.11' "${PRODUCTION_DIR}/proxy-nginx.conf.template"
 grep -Fq 'proxy_pass http://$api_upstream/readiness' "${PRODUCTION_DIR}/proxy-nginx.conf.template"
