@@ -17,9 +17,9 @@ secrets, storage, monitoring, backup, privacy, and browser/device acceptance.
 
 | Component | Release branch | Pinned revision |
 | --- | --- | --- |
-| Deploy and handover | `feat/unit-hub-announcements-sessions` | Protected signed release tag; record the resolved commit externally |
-| API and Sidekiq | `11.0.x` | `f176f9f6d655c387ce6ceb281a591f13e71b63bd` |
-| Web application | `feat/unit-hub-release-integration` | `6c845e16b9d4ded6dad4810a2cf6d288ef0c6c6f` |
+| Deploy and handover | `integration/t2-2026` | Protected signed release tag; record the resolved commit externally |
+| API and Sidekiq | `integration/t2-2026` | `bb360dfa626f30e22c1382e20ef43c06ce6b38fa` |
+| Web application | `integration/t2-2026` | `8fcf4135a31e639ef47e652a3834ba0b91d45561` |
 
 A Git commit cannot contain its own final hash. After the accepted deploy commit
 is tagged under the protected release policy, resolve that signed tag to a
@@ -110,9 +110,9 @@ Maintenance window and timezone:
 Approved release version:
 Deploy Git revision:
 Deploy signed release ref:
-API Git revision: f176f9f6d655c387ce6ceb281a591f13e71b63bd
+API Git revision: bb360dfa626f30e22c1382e20ef43c06ce6b38fa
 API signed release ref:
-Web Git revision: 6c845e16b9d4ded6dad4810a2cf6d288ef0c6c6f
+Web Git revision: 8fcf4135a31e639ef47e652a3834ba0b91d45561
 Web signed release ref:
 Release-ref signature verification evidence:
 API image digest:
