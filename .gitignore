@@ -6,12 +6,7 @@
 /.devcontainer/.env
 /development/.env
 
-# Production runtime configuration, credentials, and local TLS material.
-/production/.env.production
-/production/secrets/*
-!/production/secrets/.gitkeep
-/production/shared-files/aliases
-/production/shared-files/msmtprc
+# Database dumps in the production folder.
 /production/*.sql
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos

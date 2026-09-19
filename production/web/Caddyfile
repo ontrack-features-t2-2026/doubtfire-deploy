@@ -1,0 +1,258 @@
+# Matcher preamble shared by every Caddy-served download.
+(caddyServedDownload) {
+    expression `{$SERVE_VIA_CADDY:false} == true`
+    method GET HEAD
+}
+
+# Ask Rails to authenticate and authorise one download, then serve the file it
+# names. Route parameters identify records only: Rails derives and validates the
+# filesystem path itself, and the browser can never select one.
+#   args[0]  the /api/internal/downloads/* endpoint that authorises this kind
+#   args[1]  the Cache-Control to serve the file with
+(authorisedFileServer) {
+    # Never let a client seed the internal routing headers.
+    request_header -X-OnTrack-File
+    request_header -X-OnTrack-Content-Disposition
+    request_header -X-OnTrack-Content-Type
+    request_header -X-OnTrack-Cache-Control
+
+    # All original headers, such as username and Auth-Token, are passed through.
+    forward_auth {$ONTRACK_API_UPSTREAMS:apiserver-green:3000 apiserver:3000} {
+        uri /api/internal/downloads/{args[0]}
+        header_up X-OnTrack-Download-Auth {$CADDY_DOWNLOAD_AUTH_SECRET}
+        copy_headers X-OnTrack-File X-OnTrack-Content-Disposition X-OnTrack-Content-Type X-OnTrack-Cache-Control
+
+        lb_policy first
+        lb_retries 2
+
+        health_uri /health
+        health_timeout 2s
+        health_interval 3s
+        health_headers {
+            Host {$ONTRACK_SITE_ADDRESS:example.com}
+        }
+    }
+
+    rewrite * /{http.request.header.X-OnTrack-File}
+    root * /student-work
+    header Content-Disposition "{http.request.header.X-OnTrack-Content-Disposition}"
+    header Content-Type "{http.request.header.X-OnTrack-Content-Type}"
+    header Cache-Control "{args[1]}"
+
+    # Which tier streamed the bytes. Rails' own fallback sets "rails" instead,
+    # so the header says whether this intercept fired. Deliberately generic:
+    # it names the tier, not the proxy behind it.
+    header X-OnTrack-Served-By "file-server"
+    file_server
+}
+
+{$ONTRACK_SITE_ADDRESS:example.com} {
+    # Compose policies from readable sections while emitting one header value.
+    vars {
+        # Browser capabilities used by OnTrack and explicitly disabled otherwise.
+        permissions_capture "camera=(self), microphone=(self), fullscreen=(self)"
+        permissions_clipboard "clipboard-read=(self), clipboard-write=(self)"
+        permissions_disabled "geolocation=(), payment=(), usb=()"
+
+        # Compatibility policy for trusted uploaded unit sites. It permits
+        # inline code and remote HTTPS assets, but deliberately omits unsafe-eval.
+        csp_unit_core "default-src 'self' https: data: blob:; base-uri 'self'; object-src 'self' https: data: blob:;"
+        csp_unit_code "script-src 'self' https: 'unsafe-inline'; style-src 'self' https: 'unsafe-inline';"
+        csp_unit_content "font-src 'self' https: data:; img-src 'self' https: data: blob:; media-src 'self' https: data: blob:;"
+        csp_unit_network "connect-src 'self' https: blob:; worker-src 'self' blob:;"
+        csp_unit_frames "child-src 'self' https: blob:; frame-src 'self' https: blob:; frame-ancestors 'self';"
+        csp_unit_navigation "form-action 'self' https:; upgrade-insecure-requests"
+
+        # Strict policy for OnTrack, JPlag, LTI, and ordinary API responses.
+        csp_standard_core "default-src 'self'; base-uri 'self'; object-src 'self' blob:;"
+        csp_standard_code "script-src 'self'; script-src-elem 'self' 'unsafe-inline'; script-src-attr 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;"
+        csp_standard_content "font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:;"
+        csp_standard_network "connect-src 'self' blob: https://api.github.com https://www.gravatar.com; worker-src 'self' blob:;"
+        csp_standard_frames "child-src 'self' blob:; frame-src 'self' blob:; frame-ancestors 'self' https:;"
+        csp_standard_navigation "form-action 'self' https:; manifest-src 'self'; upgrade-insecure-requests"
+    }
+
+    # Only forward_auth below may present this secret.
+    request_header -X-OnTrack-Download-Auth
+
+    header {
+        -Server
+        -Via
+        Strict-Transport-Security "max-age=31536000"
+        Permissions-Policy "{vars.permissions_capture}, {vars.permissions_clipboard}, {vars.permissions_disabled}"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-Content-Type-Options "nosniff"
+        X-Permitted-Cross-Domain-Policies "none"
+        X-XSS-Protection "0"
+    }
+
+    # The web image supplies its own build-specific CSP, including hashes for
+    # Angular's inline scripts. Add a second policy instead of replacing it:
+    # browsers enforce both policies, so only the configured Moodle origin can
+    # embed OnTrack without discarding those script hashes. JPlag is a separate
+    # same-origin application which OnTrack embeds itself.
+    @webContent not path /api/* /lti/api/* /health /JPlag /JPlag/*
+    header @webContent +Content-Security-Policy "frame-ancestors {$ONTRACK_MOODLE_ORIGIN:'self'};"
+
+    @jplagContent path /JPlag /JPlag/*
+    header @jplagContent +Content-Security-Policy "frame-ancestors 'self';"
+
+    # Serve the report viewer's entry point for its own client-side routes, which
+    # have no file behind them. Listed route by route so that no request for a
+    # real asset is ever rewritten, whatever a submission is named.
+    @jplagAppRoute path /JPlag/overview /JPlag/info /JPlag/comparison/* /JPlag/cluster/* /JPlag/error/* /JPlag/old/*
+    rewrite @jplagAppRoute /JPlag/
+
+    # Authentication responses and APIs may contain access tokens, session
+    # details, or student data. Override upstream cache settings so browsers
+    # and shared proxies do not retain them; static application assets remain
+    # cacheable.
+    @sensitiveContent {
+        path /sign_in /sign_in/* /api /api/* /lti/api /lti/api/*
+        not path_regexp ^/api/units/[0-9]+/content/sites/[0-9]+/files(?:/.*)?$
+    }
+    header @sensitiveContent >Cache-Control "no-store"
+
+    # Uploaded unit sites are trusted course content and can contain inline
+    # scripts/styles, nested frames, and remote HTTPS assets. Keep that
+    # compatibility exception scoped to the authenticated content endpoint;
+    # dynamic evaluation remains disabled.
+    @unitContent path_regexp ^/api/units/[0-9]+/content(?:/sites/[0-9]+/files(?:/.*)?)?$
+    header @unitContent >Content-Security-Policy "{vars.csp_unit_core} {vars.csp_unit_code} {vars.csp_unit_content} {vars.csp_unit_network} {vars.csp_unit_frames} {vars.csp_unit_navigation}"
+
+    # API, LTI, and health responses carry no policy of their own, so serve the
+    # strict one here.
+    @apiContent {
+        path /api/* /lti/api/* /health
+        not path_regexp ^/api/units/[0-9]+/content(?:/sites/[0-9]+/files(?:/.*)?)?$
+    }
+    header @apiContent >Content-Security-Policy "{vars.csp_standard_core} {vars.csp_standard_code} {vars.csp_standard_content} {vars.csp_standard_network} {vars.csp_standard_frames} {vars.csp_standard_navigation}"
+
+    # Production uses the certificates mounted at these default paths. The
+    # devcontainer overrides this with "internal" so Caddy manages local TLS.
+    tls {$ONTRACK_TLS:/etc/caddy/cert.crt /etc/caddy/key.key}
+
+    # Protected file downloads retain their record-based API URLs. Caddy asks
+    # Rails to authenticate and authorise each request, then serves only the
+    # student-work-relative path returned by that trusted internal endpoint.
+    @submissionDownload {
+        import caddyServedDownload
+        path_regexp submissionDownload ^/api/projects/[0-9]+/task_def_id/[0-9]+/(?:submission|submission_files)$
+    }
+    @portfolioDownload {
+        import caddyServedDownload
+        path_regexp portfolioDownload ^/api/submission/unit/[0-9]+/portfolio$
+    }
+    @taskSubmissionFilesDownload {
+        import caddyServedDownload
+        path_regexp taskSubmissionFilesDownload ^/api/submission/unit/[0-9]+/task_definitions/[0-9]+/download_submissions$
+    }
+    @taskSubmissionPdfsDownload {
+        import caddyServedDownload
+        path_regexp taskSubmissionPdfsDownload ^/api/submission/unit/[0-9]+/task_definitions/[0-9]+/student_pdfs$
+    }
+    @pdfFileDownload {
+        import caddyServedDownload
+        path_regexp pdfFileDownload ^/api/(?:units/[0-9]+/task_definitions/[0-9]+/(?:task_pdf(?:\.json)?|jplag_report)|submission/project/[0-9]+/portfolio|tasks/[0-9]+/similarities/[0-9]+/contents/[0-9]+|projects/[0-9]+/task_def_id/[0-9]+/comments/[0-9]+|projects/[0-9]+/engagements/[0-9]+/attachment)$
+    }
+    @unitContentFile {
+        import caddyServedDownload
+        path_regexp unitContentFile ^/api/units/[0-9]+/content/sites/[0-9]+/files(?:/.*)?$
+    }
+
+    route {
+        # Reachable only via forward_auth below, which bypasses this routing.
+        handle /api/internal/* {
+            respond 404
+        }
+
+        handle @pdfFileDownload {
+            route {
+                import authorisedFileServer pdf-file "private, no-store"
+            }
+        }
+
+        handle @unitContentFile {
+            route {
+                import authorisedFileServer unit-content "{http.request.header.X-OnTrack-Cache-Control}"
+            }
+        }
+
+        handle @submissionDownload {
+            route {
+                import authorisedFileServer submission "private, no-store"
+            }
+        }
+
+        handle @portfolioDownload {
+            route {
+                import authorisedFileServer portfolio "private, no-store"
+            }
+        }
+
+        handle @taskSubmissionFilesDownload {
+            route {
+                import authorisedFileServer task-submission-files "private, no-store"
+            }
+        }
+
+        handle @taskSubmissionPdfsDownload {
+            route {
+                import authorisedFileServer task-submission-pdfs "private, no-store"
+            }
+        }
+    }
+
+    # The Sidekiq dashboard is exposed only when explicitly enabled and both
+    # authentication values are present. Leave both credentials empty to keep
+    # the dashboard disabled; a partially configured pair fails validation.
+    @sidekiqWeb {
+        path /sidekiq /sidekiq/*
+        expression `{env.ENABLE_SIDEKIQ_WEB} == "true" && {env.SIDEKIQ_WEB_USERNAME} != "" && {env.SIDEKIQ_WEB_PASSWORD_HASH} != ""`
+    }
+    handle @sidekiqWeb {
+        basic_auth {
+            {$SIDEKIQ_WEB_USERNAME} {$SIDEKIQ_WEB_PASSWORD_HASH}
+        }
+        reverse_proxy {$ONTRACK_API_UPSTREAMS:apiserver-green:3000 apiserver:3000}
+    }
+
+    # Prefer the green API during deployments, then fall back to the primary API.
+    # Active health checks fail unavailable upstreams quickly.
+    reverse_proxy /api/* {
+        to {$ONTRACK_API_UPSTREAMS:apiserver-green:3000 apiserver:3000}
+
+        lb_policy first
+        lb_retries 2
+
+        health_uri /health
+        health_timeout 2s
+        health_interval 3s
+        health_headers {
+            Host {$ONTRACK_SITE_ADDRESS:example.com}
+        }
+    }
+
+    # Expose the Rails health check at /api/health and /health.
+    rewrite /api/health /health
+
+    reverse_proxy /health {
+        to {$ONTRACK_API_UPSTREAMS:apiserver-green:3000 apiserver:3000}
+
+        lb_policy first
+        lb_retries 2
+
+        health_uri /health
+        health_timeout 2s
+        health_interval 3s
+        health_headers {
+            Host {$ONTRACK_SITE_ADDRESS:example.com}
+        }
+    }
+
+    # Route LTI requests to the LTI service.
+    reverse_proxy /lti/api/* {$ONTRACK_LTI_UPSTREAM:lti:3001}
+
+    # Serve the Angular application for all remaining requests.
+    reverse_proxy /* {$ONTRACK_WEB_UPSTREAM:webserver:80}
+}

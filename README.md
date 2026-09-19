@@ -1,47 +1,128 @@
+<p align="center">
+	<img alt="OnTrack logo" src="./ontrack-logo.png" width="192">
+</p>
 
-# Doubtfire Deploy
+# OnTrack Deployment
 
-Doubtfire is a feedback-driven learning support system.
+OnTrack (formerly Doubtfire) is a feedback-driven learning support system. This repository brings
+together the OnTrack services and is the central place for development and
+deployment instructions.
 
-The Doubtfire Deploy repository is used to manage releases of Doubtfire using containers.
+## Development
 
-## Documentation
+You need [Git](https://git-scm.com/), [Docker](https://www.docker.com/), and
+[Visual Studio Code](https://code.visualstudio.com/) with the
+[Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+The container installs the other recommended editor extensions automatically.
 
-- [Demo guide](DEMO.md)
-- [Release guide](RELEASING.md)
-- [Migration guide](MIGRATING.md)
-- [Notifications integration](NOTIFICATIONS-INTEGRATION.md)
-- [All-features integration](ALL-FEATURES-INTEGRATION.md)
-- [Unit Hub, Teams announcements and class calendars](UNIT-HUB.md)
-- [Development Docker files](development/development-dockerfiles.md)
-- [OnTrack Podman setup](docs/ONTRACK_PODMAN_SETUP.md)
+```sh
+git clone --recurse-submodules https://github.com/doubtfire-lms/doubtfire-deploy.git
+cd doubtfire-deploy
+code .
+```
 
-## Table of Contents
+In VS Code, open the Command Palette (`Cmd+Shift+P` on macOS or
+`Ctrl+Shift+P` on Windows/Linux), then run **Dev Containers: Reopen in
+Container**. The container sets up the dependencies and development services,
+then starts the API and web app.
+Open <http://localhost:4200> when startup is complete.
 
-- [Doubtfire Deploy](#doubtfire-deploy)
-  - [Documentation](#documentation)
-  - [Table of Contents](#table-of-contents)
-  - [How to use this project for development](#how-to-use-this-project-for-development)
-  - [How to use this project for deployment](#how-to-use-this-project-for-deployment)
+## Deployment Quick Start
 
+The deployment commands use Docker Compose v2 (`docker compose`) and require
+`docker-compose-v2`. The legacy Docker Compose v1 command (`docker-compose`) is
+not supported.
 
-## How to use this project for development
+```sh
+sudo apt install docker-compose-v2
+```
 
-Use [RUNNING-LOCALLY.md](RUNNING-LOCALLY.md) for the current combined checkout
-and demo workflow. [CONTRIBUTING.md](CONTRIBUTING.md) retains general project and
-commit guidance, but its older runtime and branch examples are not the 11.0.x
-release contract.
+The [`production/docker-compose.yml`](production/docker-compose.yml) template
+runs the published OnTrack Docker images together with MariaDB, Redis, PDF
+generation, and a Caddy reverse proxy. See [DEPLOYING.md](DEPLOYING.md) for the
+full deployment guide.
 
-## How to use this project for deployment
+```sh
+git clone --recurse-submodules https://github.com/doubtfire-lms/doubtfire-deploy.git
+cd doubtfire-deploy/production
+```
 
-Start with the release-owner checklist in [HANDOVER.md](HANDOVER.md), then use
-the fail-closed production Compose stack and operator runbook in
-[DEPLOYING.md](DEPLOYING.md). The deployment requires institution-owned secrets,
-TLS, identity-provider and SMTP settings, persistent storage, monitoring,
-restored backups, manual acceptance, and immutable container image digests;
-none are defaulted in the repository.
+### Configure the deployment
 
-The isolated all-features demonstration remains available under
-[`development/all-features-demo`](development/all-features-demo/README.md). It
-uses synthetic data and development-only accounts and is never production
-configuration.
+1. Configure your domain and DNS, then obtain a TLS certificate.
+2. Map the certificate and private key into the `proxy` service in
+   [`docker-compose.yml`](production/docker-compose.yml).
+3. Configure the public address, upstream services, TLS paths, and Caddy file
+   serving in [`web/caddy.env`](production/web/caddy.env).
+4. Update the institution settings in
+   [`api/.env.production`](production/api/.env.production), including the
+   institution domain. Ensure `CADDY_DOWNLOAD_AUTH_SECRET` has the same
+   value in both API and Caddy environment files.
+
+The example passwords and secrets in `api/.env.production` may be replaced
+after confirming that the stack starts, but replace them before exposing the
+deployment publicly or storing real data.
+
+### Start OnTrack
+
+Validate the configuration, download the images, and start the services:
+
+```sh
+docker compose config
+docker compose pull
+docker compose up -d
+```
+
+Use `docker compose logs -f` to follow startup. The application can take up to
+30 seconds to start.
+
+### Initialise a new database
+
+Run this once for a new deployment with an empty database:
+
+```sh
+docker compose exec -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 pdfgen rails db:setup db:init
+```
+
+> [!WARNING]
+> This command rebuilds the database and will erase existing data.
+> When prompted to run it in production, enter `Yes` exactly as shown.
+
+> [!NOTE]
+> If the `database` authentication method is enabled, you will also be asked to enter and
+> confirm the initial admin password.
+
+After initialisation, open a Rails console in the API container:
+
+```sh
+docker compose exec pdfgen rails console
+```
+
+Then inspect the first user to confirm that the `aadmin` account was created:
+
+```ruby
+User.first
+```
+
+### Apply database migrations
+
+Run migrations after initialising the database and after every OnTrack update:
+
+```sh
+docker compose exec pdfgen rails db:migrate
+```
+
+That's it! You can now log in and explore OnTrack. Visit the
+[OnTrack Deployment Wiki](https://github.com/doubtfire-lms/doubtfire-deploy/wiki) for more
+guidance, or [create an issue](https://github.com/doubtfire-lms/doubtfire-deploy/issues/new)
+if you run into deployment problems.
+
+## Contributing
+
+Planning to contribute? Start with [CONTRIBUTING.md](CONTRIBUTING.md) for useful
+development tips, repository and branching guidance, testing workflows, and the
+steps for submitting a pull request.
+
+## License
+
+Licensed under the GNU Affero General Public License (AGPL) v3.
