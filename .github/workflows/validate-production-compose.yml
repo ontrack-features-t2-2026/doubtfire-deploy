@@ -43,4 +43,4 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Validate production configuration
-        run: production/tests/validate_test.sh
+        run: docker compose --project-directory production -f production/docker-compose.yml config --quiet
