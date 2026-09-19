@@ -595,8 +595,7 @@ threshold because the seed never removes students. In every case it adds enough
 students per class to leave at least the configured peer threshold after the
 reader is excluded. Never lower the configured floor to make a demo visible.
 
-The production Compose template supplies the same approved values through
-`production/.env.production.example`, which you copy to `production/.env.production`
-on the host. That file is deliberately not committed. These values are not
+In production the same approved values are set in `production/api/.env.production`,
+which the api, sidekiq and pdfgen containers all read. These values are not
 secrets, but both must be present because an enabled unit with an eligible
 snapshot returns 503 when either setting is missing or invalid.
