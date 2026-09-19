@@ -29,6 +29,10 @@ and institution-specific acceptance remain part of the normal release gates.
 
 ## Release and deployment
 
+> On `upstream-base/t2-2026` production is doubtfire-lms's Caddy layout. It has no `migrate`
+> service, no production validator and no split that gives the Teams secret to the worker only.
+> Those parts of this guide describe `integration/t2-2026` until they are ported.
+
 Use the API and web revisions pinned by this deployment change together. The
 API adds `CreateUnitHub` (`20260914000000`), the calendar revision migration
 (`20260914000001`) and `AddTeamsAnnouncementSources` (`20260914000002`),
@@ -236,7 +240,7 @@ Validate and deploy through the existing production process. To check the
 connection immediately after deployment, run in the main worker:
 
 ```bash
-production/compose.sh exec sidekiq bundle exec rake teams:sync_announcements
+docker compose --project-directory production -f production/docker-compose.yml exec sidekiq bundle exec rake teams:sync_announcements
 ```
 
 The background worker checks every five minutes. The Unit Hub's configured

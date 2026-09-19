@@ -1,5 +1,9 @@
 # OnTrack 11.0.x release handover
 
+> On `upstream-base/t2-2026` this checklist does not apply as written. Production there is
+> doubtfire-lms's Caddy layout. The `.env.production` example, `validate.sh`, `deploy.sh` and
+> `verify.sh` named below exist only on `integration/t2-2026`.
+
 This is the authoritative handover checklist for the combined CPD, Peer
 Progress Indicator (PPI), Email Notifications, Mobile/Web Push Notifications,
 Unit Hub announcements, class calendars, Teams meeting drafts and study essentials, and retained demonstration package.
