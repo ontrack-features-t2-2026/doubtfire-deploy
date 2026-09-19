@@ -24,8 +24,8 @@ services:
   mailpit:
     container_name: notifications-demo-mailpit
     ports: !override
-      - "8225:8025"
-      - "1225:1025"
+      - "127.0.0.1:8225:8025"
+      - "127.0.0.1:1225:1025"
 
   doubtfire-api:
     container_name: notifications-demo-api

@@ -105,6 +105,11 @@ require(
     ],
     "demo published ports changed or a database/Redis port became public",
 )
+for port in services["mailpit"].get("ports", []):
+    require(
+        port.get("host_ip") == "127.0.0.1",
+        "the Mailpit inbox must only be published on 127.0.0.1",
+    )
 
 expected_volume_names = {
     "all_features_demo_db_data",

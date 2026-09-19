@@ -8,8 +8,8 @@ services:
   mailpit:
     container_name: ppi-live-mailpit
     ports: !override
-      - "8125:8025"
-      - "1125:1025"
+      - "127.0.0.1:8125:8025"
+      - "127.0.0.1:1125:1025"
 
   doubtfire-api:
     container_name: ppi-live-api

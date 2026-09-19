@@ -43,8 +43,10 @@ services:
     container_name: df-compose-mailpit
     image: axllent/mailpit:latest
     ports:
-      - "8025:8025"   # web inbox, open this in a browser
-      - "1025:1025"   # smtp, what the api sends to
+      # Bound to this machine only. The inbox shows every email the app sends,
+      # so it must not be reachable from the rest of the network.
+      - "127.0.0.1:8025:8025"   # web inbox, open this in a browser
+      - "127.0.0.1:1025:1025"   # smtp, what the api sends to
     environment:
       MP_MAX_MESSAGES: 500
       MP_SMTP_AUTH_ACCEPT_ANY: 1
