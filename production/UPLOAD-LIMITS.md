@@ -70,3 +70,25 @@ on the chosen endpoint. Record the API/web/deploy commits alongside the output.
 The production request-size default is unchanged. This work does not deploy a
 stack or provide production measurements; those require the actual deployment
 configuration and its authorized test account.
+
+## Verified local integration
+
+The authenticated probe passed on 21 September 2026 against API commit
+`6ca598ce` (the safe spreadsheet/chat attachment branch) and deploy commit
+`8038777`. It used Rails 8.0.5.1 / Ruby 3.4.10 in test mode, a disposable MariaDB
+database and project, and Nginx 1.30.4 with the production template and `32m`
+request limit. HTTPS certificate verification remained enabled. No web client
+was involved in these transport checks.
+
+| File/request boundary | Direct API | Through Nginx |
+| --- | --- | --- |
+| Empty CSV | 400 | 400 |
+| 1,024-byte CSV | 201 | 201 |
+| 29,999,999-byte CSV | 201 | 201 |
+| 30,000,000-byte CSV | 413 | 413 |
+| 33,554,433-byte total request | Not an API file-policy case | 413, `request_too_large` |
+
+The permitted near-limit CSV occupied 30,000,360 bytes as multipart data and
+reached Rails through Nginx. Each successful test comment was deleted. The
+[raw status/size results](tests/results/upload-boundaries-20260921.jsonl) contain
+no credentials, filenames, account identifiers or private endpoint URLs.

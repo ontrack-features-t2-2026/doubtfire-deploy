@@ -1,0 +1,9 @@
+{"path":"direct","file_bytes":0,"request_bytes":361,"status":400,"expected":400}
+{"path":"direct","file_bytes":1024,"request_bytes":1385,"status":201,"expected":201}
+{"path":"direct","file_bytes":29999999,"request_bytes":30000360,"status":201,"expected":201}
+{"path":"direct","file_bytes":30000000,"request_bytes":30000361,"status":413,"expected":413}
+{"path":"proxy","file_bytes":0,"request_bytes":361,"status":400,"expected":400}
+{"path":"proxy","file_bytes":1024,"request_bytes":1385,"status":201,"expected":201}
+{"path":"proxy","file_bytes":29999999,"request_bytes":30000360,"status":201,"expected":201}
+{"path":"proxy","file_bytes":30000000,"request_bytes":30000361,"status":413,"expected":413}
+{"path":"proxy","request_bytes":33554433,"status":413,"code":"request_too_large"}
