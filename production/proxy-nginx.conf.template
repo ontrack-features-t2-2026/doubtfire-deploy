@@ -54,6 +54,15 @@ server {
 
   client_max_body_size ${CLIENT_MAX_BODY_SIZE};
 
+  # Rails cannot format a request rejected before it reaches the API. Keep this
+  # response compatible with the API error envelope consumed by upload clients.
+  error_page 413 = @upload_too_large;
+
+  location @upload_too_large {
+    default_type application/json;
+    return 413 '{"error":"The upload request exceeds the server limit. Try a smaller file or contact your unit staff.","code":"request_too_large"}';
+  }
+
   # Compress proxied API responses. Only application/json is listed: the static
   # bundle (text/css, application/javascript) is already gzipped inside the web
   # container by doubtfire-web/nginx.conf, and the notification list is the

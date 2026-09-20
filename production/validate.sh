@@ -125,6 +125,13 @@ require_value TZ
 
 require_value CLIENT_MAX_BODY_SIZE
 [[ "${VALUE}" =~ ^[1-9][0-9]*[mMgG]$ ]] || fail "CLIENT_MAX_BODY_SIZE must look like 100m or 1g"
+# Task chat permits files below 30,000,000 bytes. Reserve multipart headroom;
+# Rails still enforces its separate per-file and per-context limits.
+body_size_number="${VALUE%?}"
+body_size_unit="${VALUE: -1}"
+if [[ "${body_size_unit}" == [mM] && ${#body_size_number} -le 2 ]]; then
+  (( 10#${body_size_number} >= 32 )) || fail "CLIENT_MAX_BODY_SIZE must be at least 32m for chat attachments and multipart overhead"
+fi
 
 image_keys=(
   PROXY_IMAGE
