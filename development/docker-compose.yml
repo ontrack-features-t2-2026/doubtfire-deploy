@@ -67,6 +67,7 @@ services:
     environment: &doubtfire-api-environment
       RAILS_ENV: 'development'
       TZ: Australia/Melbourne
+      TUTORIAL_ENABLED: ${TUTORIAL_ENABLED:-0}
 
       # Mail catcher. Setting DF_SMTP_ADDRESS is what switches the api from
       # writing mail to a file to sending it to mailpit. Unset it and the api

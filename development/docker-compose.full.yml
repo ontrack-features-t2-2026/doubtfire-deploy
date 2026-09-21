@@ -75,6 +75,7 @@ services:
 
       # Overseer - disabled!
       OVERSEER_ENABLED: 1
+      TUTORIAL_ENABLED: ${TUTORIAL_ENABLED:-0}
       RABBITMQ_HOSTNAME: doubtfire-mq
       RABBITMQ_USERNAME: secure_credentials
       RABBITMQ_PASSWORD: secure_credentials
