@@ -40,5 +40,8 @@ jobs:
       - name: Validate dev-container Compose configuration
         run: docker compose -f .devcontainer/docker-compose.yml config --quiet
 
+      - name: Test desktop PWA public-asset verification
+        run: python3 -B production/tests/verify_pwa_test.py
+
       - name: Validate production Compose configuration
         run: production/tests/validate_test.sh

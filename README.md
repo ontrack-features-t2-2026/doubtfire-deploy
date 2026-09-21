@@ -9,6 +9,7 @@ The Doubtfire Deploy repository is used to manage releases of Doubtfire using co
 
 - [Demo guide](DEMO.md)
 - [Release guide](RELEASING.md)
+- [Desktop PWA installation and release checks](DESKTOP-PWA.md)
 - [Migration guide](MIGRATING.md)
 - [Notifications integration](NOTIFICATIONS-INTEGRATION.md)
 - [All-features integration](ALL-FEATURES-INTEGRATION.md)
