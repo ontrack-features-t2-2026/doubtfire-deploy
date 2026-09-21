@@ -9,7 +9,7 @@ REPOSITORY_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 usage() {
   cat >&2 <<'USAGE'
 Usage:
-  PUBLISH_RELEASE_CONFIRM=1 ./publish-release.sh REGISTRY_NAMESPACE RELEASE_VERSION [PLATFORMS]
+  PUBLISH_RELEASE_CONFIRM=1 ./publish-release.sh [--no-cache-web] REGISTRY_NAMESPACE RELEASE_VERSION [PLATFORMS]
 
 Example:
   PUBLISH_RELEASE_CONFIRM=1 ./publish-release.sh \
@@ -17,6 +17,10 @@ Example:
 
 The command publishes five multi-platform images and prints immutable digest
 references. Authenticate Docker to the approved registry before running it.
+
+For a PWA recovery release from earlier web source, use --no-cache-web and a new
+release version. This forces the web image's Angular build to run again, producing
+a fresh service-worker manifest. Other images retain normal build caching.
 USAGE
 }
 
@@ -25,10 +29,28 @@ fail() {
   exit 1
 }
 
-(( $# >= 2 && $# <= 3 )) || {
+NO_CACHE_WEB=0
+POSITIONAL_ARGUMENTS=()
+for argument in "$@"; do
+  case "${argument}" in
+    --no-cache-web)
+      [[ "${NO_CACHE_WEB}" == 0 ]] || fail "--no-cache-web may only be specified once"
+      NO_CACHE_WEB=1
+      ;;
+    --*)
+      fail "unknown option: ${argument}"
+      ;;
+    *)
+      POSITIONAL_ARGUMENTS+=("${argument}")
+      ;;
+  esac
+done
+
+(( ${#POSITIONAL_ARGUMENTS[@]} >= 2 && ${#POSITIONAL_ARGUMENTS[@]} <= 3 )) || {
   usage
   exit 2
 }
+set -- "${POSITIONAL_ARGUMENTS[@]}"
 
 REGISTRY_NAMESPACE="$1"
 RELEASE_VERSION="$2"
@@ -92,7 +114,9 @@ METADATA_DIR="${RELEASE_TEMP_DIR}/metadata"
 CONTEXT_DIR="${RELEASE_TEMP_DIR}/contexts"
 mkdir -p "${METADATA_DIR}" "${CONTEXT_DIR}"
 cleanup() {
+  local publication_status=$?
   rm -rf -- "${RELEASE_TEMP_DIR}"
+  exit "${publication_status}"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
@@ -129,7 +153,7 @@ if ! git -C doubtfire-web submodule foreach --quiet --recursive '
 '; then
   fail "could not populate the clean nested web-submodule build context"
 fi
-unset WEB_CONTEXT
+export -n WEB_CONTEXT
 
 publish_image() {
   local manifest_key="$1"
@@ -141,11 +165,20 @@ publish_image() {
   local metadata_file="${METADATA_DIR}/${manifest_key}.json"
   local digest
   local registry_digest
+  local cache_flag=""
+
+  # A new tag or final-image label does not invalidate the cached Angular build
+  # stage. Recovery must regenerate ngsw.json, even when the source is unchanged.
+  if [[ "${manifest_key}" == DOUBTFIRE_WEB_IMAGE && "${NO_CACHE_WEB}" == 1 ]]; then
+    cache_flag=--no-cache
+    printf 'Recovery release: bypassing the web image build cache.\n' >&2
+  fi
 
   [[ "${source_revision}" =~ ^[0-9a-f]{40}$ ]] || fail "source revision is invalid for ${image_name}"
 
   printf 'Publishing %s from %s...\n' "${image_tag}" "${dockerfile}" >&2
   docker buildx build \
+    ${cache_flag:+"${cache_flag}"} \
     --file "${dockerfile}" \
     --platform "${RELEASE_PLATFORMS}" \
     --tag "${image_tag}" \

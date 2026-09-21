@@ -66,6 +66,14 @@ so writing it into the repository would correctly make publication fail. A
 nonzero publisher exit leaves incomplete evidence that must be quarantined and
 must never be accepted as a release manifest.
 
+For a PWA recovery release rebuilt from prior web source, add `--no-cache-web` to
+the publisher invocation. This bypasses Docker's build cache for the web image
+so Angular generates a fresh service-worker manifest; the other four images
+retain their normal cache behavior. A new tag or version label alone does not
+invalidate the cached Angular build. Use a distinct immutable recovery version
+and follow [desktop client recovery](DESKTOP-PWA.md#rollback-and-recovery),
+including acceptance in a client still running the failed release.
+
 The publisher refuses dirty or mismatched component worktrees, then creates
 temporary build contexts only from files tracked by the pinned Git commits. It
 populates nested web assets from the exact nested gitlink, so ignored or

@@ -174,23 +174,62 @@ replace this matrix.
 
 ## Rollback and recovery
 
-Retain the prior web image digest, deploy checkout, and browser acceptance record.
-For a desktop-only web change with no backend or schema change, restore the
-previous web image digest using the existing change-control and Compose
-procedure, preserving the origin and `/index.html` identity. For a combined
-application release, use the ordered API/web rollback and migration decision in
-[DEPLOYING.md](DEPLOYING.md#upgrades-and-rollback). The forward-only deploy helper
-is not a rollback procedure.
+Retain the prior source revision, web image digest, deploy checkout, and browser
+acceptance record. Restoring a byte-identical previous image is **insufficient
+for service-worker clients that already know that version**. In Angular 22.0.3,
+an already-known `ngsw.json` hash produces `NO_NEW_VERSION_DETECTED` without
+changing the worker's latest version. Both an existing window and a newly opened
+window can therefore continue using the newer cached release after an old image
+is restored.
 
-The service worker may keep an already-open window on its previous version until
-it checks for updates and the user reloads; restoring an image is not an instant
-client rollback. Complete browser recovery on the restored release, save any
-work before reload, and confirm the installed app receives its matching shell
-and assets. Check controls at the public edge if an update is not found. Avoid
-clearing site data or changing app identity as the default recovery step: that
-can remove local work/preferences or create a second installation.
+For a desktop-only web change with no backend or schema change:
 
-Run the verifier belonging to the restored release. An older mobile-PWA release
+1. Rebuild the prior source revision as a **new recovery release**. Run the
+   production Angular build again so it generates a fresh `ngsw.json` timestamp
+   and version hash. Use the release publisher's `--no-cache-web` option to
+   prevent reuse of a Docker layer containing the old output. Give the image a
+   distinct immutable release tag and record its digest. Changing only a tag or
+   image label does not force Angular to rebuild.
+2. Check that the recovery manifest differs from the failed and previous
+   manifests, and that all asset hashes match the recovery output. Preserve the
+   canonical origin, `/index.html` app identity and `/` scope. Publish the complete
+   coherent image, not individually edited control files or bundles.
+3. Deploy through the existing change-control and Compose procedure. Run the
+   verifier belonging to that source revision against the public origin.
+4. In an app still running the failed version, check for an update. Confirm the
+   recovery release produces the existing **Reload** notice, leaves unsaved work
+   intact until the user acts, and loads the intended recovery content after
+   saving work and choosing Reload. Verify a new app window as well, then check
+   `/ngsw/state` reports `NORMAL` and repeat the offline/reconnect smoke check.
+
+After pinning the intended recovery source in a clean, reviewed deploy checkout,
+use the protected evidence directory and release-version setup from
+[RELEASING.md](RELEASING.md#2-publish-attested-application-images), adding the flag
+to its publication command:
+
+```bash
+PUBLISH_RELEASE_CONFIRM=1 production/publish-release.sh --no-cache-web \
+  registry.example.edu/ontrack "$DF_RELEASE_VERSION" linux/amd64,linux/arm64 \
+  > "$DF_RELEASE_EVIDENCE_DIR/release-application-digests.txt"
+```
+
+The publisher still publishes the full five-image release; only the web build
+bypasses cache. Review the output under the normal release policy, and deploy
+only the intended component digests. The flag does not deploy or clear browser
+data. Use a new evidence file and immutable release version for each attempt.
+
+For a combined application release, use the ordered API/web rollback and
+migration decision in [DEPLOYING.md](DEPLOYING.md#upgrades-and-rollback), applying
+the same fresh-recovery-build requirement to the web image. The forward-only
+deploy helper is not a rollback procedure.
+
+An open window can remain on its prior version until the user reloads; publishing
+a recovery image is not an instant client rollback. Check control-file caching
+at the public edge if the recovery update is not found. Avoid clearing site data
+or changing app identity as the default recovery step: that can remove local
+work/preferences or create a second installation.
+
+An older mobile-PWA release
 may omit the explicit identity or description required by this desktop verifier;
 that expected mismatch must not be reported as a passing desktop release.
 Repeat the applicable login, navigation, upload/download, notification and
