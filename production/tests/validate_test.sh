@@ -531,6 +531,14 @@ grep -Fq 'ngsw-worker.js resolved to HTML' "${verify_fixture}/pwa-failure.out"
 printf 'ok - post-deploy verification fails closed on runtime regressions\n'
 
 expect_failure placeholder-secret DF_SECRET_KEY_BASE REPLACE_ME "placeholder value"
+expect_failure unlimited-upload CLIENT_MAX_BODY_SIZE 0 "must look like"
+expect_failure undersized-upload CLIENT_MAX_BODY_SIZE 31m "at least 32m"
+expect_failure undersized-upload-uppercase CLIENT_MAX_BODY_SIZE 1M "at least 32m"
+
+minimum_upload_env="${FIXTURE_DIR}/minimum-upload.env"
+sed 's/^CLIENT_MAX_BODY_SIZE=.*/CLIENT_MAX_BODY_SIZE=32m/' "${BASE_ENV}" > "${minimum_upload_env}"
+"${PRODUCTION_DIR}/validate.sh" "${minimum_upload_env}" >/dev/null
+printf 'ok - minimum upload limit allows multipart overhead\n'
 expect_failure inline-comment-padding DF_SECRET_KEY_BASE 'x # padding-padding-padding-padding' "inline comments are not allowed"
 expect_failure compose-interpolation DF_SMTP_PASSWORD 'unsafe$value' "contains a dollar sign"
 expect_failure mutable-image DOUBTFIRE_WEB_IMAGE lmsdoubtfire/doubtfire-web:latest "immutable sha256 image digest"
