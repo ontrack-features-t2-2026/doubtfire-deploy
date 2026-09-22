@@ -11,6 +11,7 @@ on:
       - "MIGRATING.md"
       - "RELEASING.md"
       - "DEPLOYING.md"
+      - "DESKTOP-PWA.md"
       - "doubtfire-api"
       - "doubtfire-web"
       - "production/**"
@@ -26,6 +27,7 @@ on:
       - "MIGRATING.md"
       - "RELEASING.md"
       - "DEPLOYING.md"
+      - "DESKTOP-PWA.md"
       - "doubtfire-api"
       - "doubtfire-web"
       - "production/**"
@@ -41,6 +43,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Test desktop PWA public-asset verification
+        run: python3 -B production/tests/verify_pwa_test.py
+
+      - name: Test release publication and recovery cache controls
+        run: python3 -B production/tests/publish_release_test.py
 
       - name: Validate production configuration
         run: production/tests/validate_test.sh

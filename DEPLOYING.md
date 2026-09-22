@@ -333,6 +333,18 @@ jobs, and live PPI/VAPID configuration without printing credentials or student
 data. A successful exit means only that the automated gates passed; its clearly
 labelled manual gates remain mandatory before traffic or a rollback is accepted.
 
+For a release supporting desktop installation, also run the public-asset gate
+and installed-browser acceptance matrix in [DESKTOP-PWA.md](DESKTOP-PWA.md).
+The standalone gate uses Python 3.9+ and supplements `verify.sh`:
+
+```bash
+python3 -B ./verify-pwa.py https://ontrack.example.edu --timeout 30
+```
+
+Replace the example with the canonical public origin. This additional gate
+checks the web manifest, PNG icons, worker caching and released asset hashes;
+a passing result does not install or certify an operating-system app.
+
 `compose.sh` deliberately clears the ambient shell before invoking Compose and
 pins the Docker CLI to the local `/var/run/docker.sock`. This prevents exported
 variables or a remote Docker context from changing the configuration that was
