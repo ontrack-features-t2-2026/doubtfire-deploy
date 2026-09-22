@@ -197,6 +197,11 @@ in Git, tickets, command arguments, build logs, or browser configuration.
 Securely delete the temporary key directory after escrow and deployment are
 verified.
 
+Use the [private-key audit runbook](docs/vapid-secret-audit.md) to check the
+actual secret against local Git history, original image layers and protected
+log exports without printing its value. A source review or a clean current
+container filesystem cannot establish that earlier layers and logs are clean.
+
 Store the private key in the institution's secret manager and encrypted recovery
 escrow alongside the Rails encryption keys. Preserve it across deployments and
 restores. Rotating the pair invalidates every existing browser subscription:
