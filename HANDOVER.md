@@ -2,7 +2,8 @@
 
 This is the authoritative handover checklist for the combined CPD, Peer
 Progress Indicator (PPI), Email Notifications, Mobile/Web Push Notifications,
-and retained demonstration package. `DEPLOYING.md` is the detailed production
+Unit Hub announcements, class calendars, Teams meeting drafts and study essentials, and retained demonstration package.
+`UNIT-HUB.md` covers its optional Teams connection and demo. `DEPLOYING.md` is the detailed production
 runbook; `development/all-features-demo/README.md` is the disposable demo
 runbook. Older integration and PR-tracker documents are historical evidence and
 must not override this file or the pinned component revisions below.
@@ -17,8 +18,8 @@ secrets, storage, monitoring, backup, privacy, and browser/device acceptance.
 | Component | Release branch | Pinned revision |
 | --- | --- | --- |
 | Deploy and handover | `integration/deploy-all-features-foundation-20260824` | Protected signed release tag; record the resolved commit externally |
-| API and Sidekiq | `integration/11.0.x-all-features-20260824` | `87177a15f1802ca93cb13b984da636a9bb7ad083` |
-| Web application | `integration/11.0.x-all-features-20260824` | `4d0d994b0bc9cd516ba85855972812a1b5764d9a` |
+| API and Sidekiq | `11.0.x` | `a9589b302db8917f4754aaebe9ca6f86ee3a44d3` |
+| Web application | `11.0.x` | `4ec8c4fa50792f7cfe5c928e48a924455be6b13a` |
 
 A Git commit cannot contain its own final hash. After the accepted deploy commit
 is tagged under the protected release policy, resolve that signed tag to a
@@ -40,6 +41,13 @@ to their pinned commits, and record those refs with the deploy release tag. A
 mutable integration branch is review evidence, not long-term source retention.
 The release is blocked until a genuinely fresh recursive clone can fetch all
 three retained revisions from the configured repository URLs.
+
+The Unit Hub additions are review candidates until the linked API, web and
+deployment pull requests receive the required human approvals. The ordinary
+production build disables demo tools. Staff-authored content works without
+Microsoft credentials; automatic Teams announcements remain off until the
+institution approves its app, source channels and publisher mappings. Follow
+[Unit Hub release and acceptance steps](UNIT-HUB.md) before activation.
 
 ## Supported production and demo boundaries
 
@@ -102,9 +110,9 @@ Maintenance window and timezone:
 Approved release version:
 Deploy Git revision:
 Deploy signed release ref:
-API Git revision: 87177a15f1802ca93cb13b984da636a9bb7ad083
+API Git revision: a9589b302db8917f4754aaebe9ca6f86ee3a44d3
 API signed release ref:
-Web Git revision: 4d0d994b0bc9cd516ba85855972812a1b5764d9a
+Web Git revision: 4ec8c4fa50792f7cfe5c928e48a924455be6b13a
 Web signed release ref:
 Release-ref signature verification evidence:
 API image digest:
