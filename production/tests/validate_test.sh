@@ -381,13 +381,18 @@ for required_source in \
   '/ngsw-worker.js' \
   'http://127.0.0.1:3000/readiness' \
   'db:abort_if_pending_migrations' \
-  '20260824000003' \
+  '20261001000001' \
   'ActiveRecord::Base.connection_pool.migration_context.current_version' \
   'Sidekiq::ProcessSet' \
   'aggregate_peer_progress' \
   'poll_communication_set_schedules' \
   'send_new_task_available_notifications' \
   'send_due_soon_reminders' \
+  'send_daily_digest_emails' \
+  'send_weekly_digest_emails' \
+  'send_monthly_digest_emails' \
+  'send_daily_staff_attention' \
+  'send_weekly_staff_attention' \
   'DF_SIDEKIQ_CONCURRENCY' \
   'process["concurrency"].to_i == configured_concurrency' \
   'DF_PPI_MINIMUM_COHORT_SIZE' \
@@ -399,9 +404,9 @@ for required_source in \
     exit 1
   }
 done
-grep -Fq 'expected final Rails schema version is `20260824000003`' \
+grep -Fq 'expected final Rails schema version is `20261001000001`' \
   "${REPOSITORY_DIR}/MIGRATING.md"
-grep -Fq '| `20260824000003` |' "${REPOSITORY_DIR}/MIGRATING.md"
+grep -Fq '| `20261001000001` |' "${REPOSITORY_DIR}/MIGRATING.md"
 grep -Fq 'peer_progress_snapshots.submitted_count' "${REPOSITORY_DIR}/MIGRATING.md"
 grep -Fq 'new API deliberately withholds compact and detailed output until reaggregation' \
   "${REPOSITORY_DIR}/MIGRATING.md"

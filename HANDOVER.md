@@ -17,9 +17,9 @@ secrets, storage, monitoring, backup, privacy, and browser/device acceptance.
 
 | Component | Release branch | Pinned revision |
 | --- | --- | --- |
-| Deploy and handover | `integration/deploy-all-features-foundation-20260824` | Protected signed release tag; record the resolved commit externally |
-| API and Sidekiq | `11.0.x` | `a9589b302db8917f4754aaebe9ca6f86ee3a44d3` |
-| Web application | `11.0.x` | `4ec8c4fa50792f7cfe5c928e48a924455be6b13a` |
+| Deploy and handover | `11.0.x` (UX candidate in linked PR) | Protected signed release tag; record the resolved commit externally |
+| API and Sidekiq | `11.0.x` | `26e13abc07d651d7c7b49a3e4b760f90161dd1a7` |
+| Web application | `11.0.x` | `d0052c19eb4cacc7a7193272cce778d1fb96927e` |
 
 A Git commit cannot contain its own final hash. After the accepted deploy commit
 is tagged under the protected release policy, resolve that signed tag to a
@@ -48,6 +48,11 @@ production build disables demo tools. Staff-authored content works without
 Microsoft credentials; automatic Teams announcements remain off until the
 institution approves its app, source channels and publisher mappings. Follow
 [Unit Hub release and acceptance steps](UNIT-HUB.md) before activation.
+
+The task attention and notification choices package is a coordinated review
+candidate. See [UX release notes and acceptance](UX-ATTENTION.md) for the new
+preference migration, paired API/web rollout, summary schedules and outstanding
+browser/device checks. Do not claim deployment acceptance from component tests.
 
 ## Supported production and demo boundaries
 
@@ -110,9 +115,9 @@ Maintenance window and timezone:
 Approved release version:
 Deploy Git revision:
 Deploy signed release ref:
-API Git revision: a9589b302db8917f4754aaebe9ca6f86ee3a44d3
+API Git revision: 26e13abc07d651d7c7b49a3e4b760f90161dd1a7
 API signed release ref:
-Web Git revision: 4ec8c4fa50792f7cfe5c928e48a924455be6b13a
+Web Git revision: d0052c19eb4cacc7a7193272cce778d1fb96927e
 Web signed release ref:
 Release-ref signature verification evidence:
 API image digest:
