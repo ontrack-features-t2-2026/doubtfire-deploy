@@ -103,6 +103,9 @@ try {
     $script:DockerExitCode = 17
     Assert-Throws { Invoke-Docker @('ignored') } 'exit 17'
     $script:DockerExitCode = 0
+    # GitHub's Windows PowerShell shell forwards LASTEXITCODE after the script.
+    # Do not let the deliberately failed fake Docker call fail a passing suite.
+    $global:LASTEXITCODE = 0
 
     # Refusal paths must keep user files and must not fetch a different revision.
     $sourceDirectory = Join-Path $script:RepositoryRoot 'doubtfire-api'
