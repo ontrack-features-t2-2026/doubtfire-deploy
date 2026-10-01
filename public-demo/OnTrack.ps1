@@ -93,7 +93,9 @@ function Assert-DockerReady {
 function Expand-SourceArchive([string]$Archive, [string]$Destination) {
     # Strip GitHub's long SHA directory while extracting, avoiding MAX_PATH
     # failures in Windows PowerShell 5.1. Reject any path escaping the target.
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    # Windows PowerShell 5.1 uses separate .NET Framework assemblies for the
+    # archive types and filesystem helpers; load both before using ZIP types.
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
     $root = [IO.Path]::GetFullPath($Destination) + [IO.Path]::DirectorySeparatorChar
     $zip = [IO.Compression.ZipFile]::OpenRead($Archive)
     try {

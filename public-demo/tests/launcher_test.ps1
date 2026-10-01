@@ -42,7 +42,7 @@ function Read-Settings {
 }
 
 function New-TestArchive([string]$Path, [hashtable]$Entries) {
-    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
     $zip = [IO.Compression.ZipFile]::Open($Path, [IO.Compression.ZipArchiveMode]::Create)
     try {
         foreach ($name in $Entries.Keys) {
