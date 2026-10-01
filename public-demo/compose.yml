@@ -105,7 +105,10 @@ services:
       MP_MAX_MESSAGES: "500"
       MP_DATABASE: /data/mailpit.db
     volumes: [mail:/data]
-    networks: [data]
+    # Docker does not publish ports for an internal-only container. This
+    # separate bridge makes the loopback mail viewer reachable, without joining
+    # either public connector's network. No outbound SMTP relay is configured.
+    networks: [data, mail-viewer]
     mem_limit: 256m
     cpus: 1
     healthcheck:
@@ -418,6 +421,7 @@ services:
 
 networks:
   edge:
+  mail-viewer:
   data:
     internal: true
   egress:

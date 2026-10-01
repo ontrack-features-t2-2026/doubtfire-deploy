@@ -37,6 +37,12 @@ require(sorted(published) == [
 ], "only loopback origin and private mail viewer may be published")
 for name in ("data", "docker-api"):
     require(compose["networks"][name]["internal"] is True, f"{name} must be internal")
+require(set(services["mailpit"]["networks"]) == {"data", "mail-viewer"},
+        "mail viewer needs its own bridge and must not join the public edge")
+require([name for name, service in services.items() if "mail-viewer" in service.get("networks", {})] == ["mailpit"],
+        "the mail viewer bridge must not have other peers")
+require(not any(key.startswith("MP_SMTP_RELAY") or key.startswith("MP_SMTP_FORWARD")
+                for key in services["mailpit"]["environment"]), "mail must never be forwarded externally")
 
 for name in ("bootstrap", "migrate", "apiserver", "sidekiq", "pdfgen"):
     service = services[name]

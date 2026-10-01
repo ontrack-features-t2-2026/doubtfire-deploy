@@ -13,12 +13,16 @@ document is complete. It is not a preconfigured live service: the receiving
 institution must supply and own its identity-provider, SMTP, TLS, registry,
 secrets, storage, monitoring, backup, privacy, and browser/device acceptance.
 
+For a public Windows demonstration with synthetic data and shared accounts,
+use [the public demo launcher](public-demo/README.md). Its isolated profile and
+temporary HTTPS option do not require the institutional services listed above.
+
 ## Release contents
 
 | Component | Release branch | Pinned revision |
 | --- | --- | --- |
 | Deploy and handover | `11.0.x` (UX candidate in linked PR) | Protected signed release tag; record the resolved commit externally |
-| API and Sidekiq | `11.0.x` | `26e13abc07d651d7c7b49a3e4b760f90161dd1a7` |
+| API and Sidekiq | `11.0.x` | `f6a88ba353532c88a69f2fda5e95a09c87511dbe` |
 | Web application | `11.0.x` | `d0052c19eb4cacc7a7193272cce778d1fb96927e` |
 
 A Git commit cannot contain its own final hash. After the accepted deploy commit
@@ -115,7 +119,7 @@ Maintenance window and timezone:
 Approved release version:
 Deploy Git revision:
 Deploy signed release ref:
-API Git revision: 26e13abc07d651d7c7b49a3e4b760f90161dd1a7
+API Git revision: f6a88ba353532c88a69f2fda5e95a09c87511dbe
 API signed release ref:
 Web Git revision: d0052c19eb4cacc7a7193272cce778d1fb96927e
 Web signed release ref:

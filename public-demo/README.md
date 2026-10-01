@@ -19,8 +19,8 @@ branch while installing.
    Ruby or Node yourself.
 2. Extract the complete OnTrack package into `C:\OnTrack`. Keep it outside
    OneDrive or other synced folders; a short path avoids Windows filename limits.
-3. Open the **public-demo** folder, open **Start OnTrack.cmd**, and select
-   **Set up / open temporary website**.
+3. Open **Start OnTrack.cmd** and select **Set up / open temporary website**.
+   The launcher is available in both the main folder and the `public-demo` folder.
    The first run downloads the pinned source files, builds the application and
    document tools, creates private settings, and prepares the sample data.
    Downloads and the first build can take a while; later starts reuse them.
