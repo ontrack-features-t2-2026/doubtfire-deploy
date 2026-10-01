@@ -1,0 +1,20 @@
+{
+  "description": "Coordinated public demo candidate: exact API, web and nested viewer commits, including the UX improvements and guarded public seed.",
+  "sources": [
+    {
+      "path": "doubtfire-api",
+      "repository": "ontrack-features-t2-2026/doubtfire-api",
+      "revision": "79a592692fed4cb74a6bffa19deee52a9196d109"
+    },
+    {
+      "path": "doubtfire-web",
+      "repository": "ontrack-features-t2-2026/doubtfire-web",
+      "revision": "d0052c19eb4cacc7a7193272cce778d1fb96927e"
+    },
+    {
+      "path": "doubtfire-web/JPlag-Report-Viewer",
+      "repository": "doubtfire-lms/jplag-report-viewer-static",
+      "revision": "4132c30d9ed5606df4648a7f1494ca751d3dca49"
+    }
+  ]
+}
