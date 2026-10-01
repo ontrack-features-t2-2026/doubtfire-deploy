@@ -1,10 +1,10 @@
 
 # Migrating between Doubtfire Versions
 
-## OnTrack 11.0.x combined all-features release (24 August 2026)
+## OnTrack 11.0.x combined release (1 October 2026)
 
 This dossier applies only to the API revision pinned in `HANDOVER.md`. The
-expected final Rails schema version is `20260824000003`; `production/verify.sh`
+expected final Rails schema version is `20261001000001`; `production/verify.sh`
 fails if the running database does not match it. Re-audit this matrix if the API
 revision or migration set changes.
 
@@ -17,8 +17,8 @@ separate blocked migration project until its full path and rollback have been
 reviewed and rehearsed.
 
 The production stack runs migrations as a one-shot service before starting the
-new API and workers. The hardened web is staged first for authentication
-callback compatibility. Do not run multiple migration jobs, use `db:populate`,
+new API and workers. Preserve authentication callback compatibility while staging the web. The new
+UX web must not be served to users until the matching API and migration are ready. Do not run multiple migration jobs, use `db:populate`,
 or run any demo seed task against production.
 
 ### Migration matrix
@@ -35,6 +35,30 @@ or run any demo seed task against production.
 | `20260824000001` | Adds task-notification tracking/default/index plus notification dedupe key, delivery timestamp and unique user/dedupe index. | Alters `task_definitions` and `notifications`. Additive to old readers. Reversal loses dedupe/delivery state and can cause duplicate mail after re-upgrade. |
 | `20260824000002` | Repairs/retains the database default for `projects.target_grade_changed_at` on installations that previously recorded an older form of the preceding migration. | Idempotent metadata repair with no row backfill. Its down path intentionally preserves the compatibility default. |
 | `20260824000003` | Adds nullable, internal `peer_progress_snapshots.submitted_count` and `peer_progress_snapshots.status_counts` JSON, plus `users.display_peer_progress` with database default `true` and `NOT NULL`. Exact counts let the student API subtract the authenticated reader before privacy thresholding and quantisation. Existing snapshots keep their legacy stored percentage for older readers, but the new API deliberately withholds compact and detailed output until reaggregation fills both exact fields. Existing and future users start with the requested display preference enabled and may persist `false` through Profile. | Additive for old readers/writers, but the `users` alter/default backfill may lock a large table and must be measured. Reaggregate every approved PPI unit before acceptance. Prefer keeping the forward schema during application rollback. Reversal removes peer-only aggregate inputs and erases every explicit user opt-out, so re-upgrade would default those users on again unless the preference is separately restored. |
+
+### Later migrations included in the pinned release
+
+The following changes follow the August baseline above. Rehearse the complete
+path from the recorded source schema, including these migrations.
+
+| Version | Change and expected data work | Availability and rollback classification |
+| --- | --- | --- |
+| `20260827000001` | Adds nullable polymorphic notification targets and their compound index; existing links remain available without guessing targets. | Alters notifications. Reversal loses exact target references. |
+| `20260827013000` | Records consumed LTI token identifiers and expiry with a unique identifier index. | Additive. Reversal removes replay-protection history; keep forward schema during application rollback. |
+| `20260830063140` | Adds theme preference and change time to users. | Additive. Reversal loses saved appearance choices. |
+| `20260831000001` | Adds original attachment metadata and a unique user/task/client-request index. | Alters task comments. Reversal loses upload retry identity and attachment metadata. |
+| `20260831000002` | Adds submission processing state, times, error code and attempt count. | Alters tasks. Reversal removes processing and recovery evidence. |
+| `20260831000003` | Adds processing mode, actor and submission options. | Alters tasks. Reversal removes the saved retry context. |
+| `20260831012000` | Creates verified additional notification addresses and address audit events. | Additive. Reversal deletes verification state and audit history. |
+| `20260914000000` | Creates Unit Hub announcements and sessions; session calendar inclusion defaults off. | Additive. Reversal deletes authored content and calendar preferences. |
+| `20260914000001` | Adds session edit version for concurrent updates. | Additive. Older writers cannot provide the same edit conflict protection. |
+| `20260914000002` | Adds Teams source identity, freshness metadata and sync state. | Alters announcements and creates sync state. Reversal loses deduplication and freshness history. |
+| `20260920010000` | Adds notification email delivery state and indexes. Historical rows remain untracked and are not resent. | Alters notifications. Reversal loses delivery evidence; do not infer delivery from historical rows. |
+| `20260920071000` | Adds task-level resubmission extension settings and change attribution. | Alters task definitions. Reversal loses settings and audit attribution. |
+| `20260922010000` | Creates approved course catalog and personal Course Flow maps. | Additive. Reversal deletes saved course plans. |
+| `20260927000001` | Adds Unit Hub preferences; email, push and session reminders default off. | Alters users. Reversal loses explicit channel consent. |
+| `20260927000002` | Adds student digest frequency with the previous weekly default. | Alters users. Reversal loses cadence and explicit digest opt-outs. |
+| `20261001000001` | Adds separate task, feedback and portfolio email/push choices, copying each user's previous category choice; preserves previous feedback-based digest opt-outs as Never; adds staff digest frequency defaulting to off. | Alters and updates users. Measure locks and runtime on an isolated restore. Prefer keeping the forward schema during application rollback. Legacy category flags mirror email AND push; the down path preserves that conservative value and digest opt-outs before removing separate choices. Never reverse the schema while new API/worker instances run. |
 
 No migration intentionally deletes an existing pre-release application table or
 column. Database reversal is nevertheless not the preferred application
@@ -72,7 +96,7 @@ gate.
 Immediately before migration, create the consistent database/student-work
 recovery set described in `DEPLOYING.md`, verify its checksums and restore-test
 record, drain traffic, and check for pending/long-running database work. After
-migration, require schema `20260824000003`, inspect Sidekiq queues/retries, queue
+migration, require schema `20261001000001`, inspect Sidekiq queues/retries, queue
 the first PPI aggregation only for an approved unit, verify its exact aggregate
 fields are populated without printing them, and complete every manual gate in
 `HANDOVER.md`.
