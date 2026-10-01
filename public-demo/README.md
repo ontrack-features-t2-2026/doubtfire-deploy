@@ -93,6 +93,11 @@ automatic scan can miss records. Do not replace existing mail records merely
 because a Microsoft 365 subscription is available. The domain can continue
 using its current email provider.
 
+Initially keep the existing website and mail host records **DNS only** in
+Cloudflare so their traffic keeps going directly to the current providers.
+Only the new OnTrack tunnel needs the new proxy route. If DNSSEC is enabled,
+follow Cloudflare's disable/change/re-enable steps in its full setup guide.
+
 Only change VentraIP nameservers after checking the replacement zone. VentraIP
 warns that changing nameservers can remove its existing DNS records. DNS
 changes take time; the temporary demo remains an option while the permanent
