@@ -18,7 +18,7 @@ secrets, storage, monitoring, backup, privacy, and browser/device acceptance.
 | Component | Release branch | Pinned revision |
 | --- | --- | --- |
 | Deploy and handover | `11.0.x` (UX candidate in linked PR) | Protected signed release tag; record the resolved commit externally |
-| API and Sidekiq | `11.0.x` | `6042a05e9b8466b4191623da5d336ae048e36c08` |
+| API and Sidekiq | `11.0.x` | `26e13abc07d651d7c7b49a3e4b760f90161dd1a7` |
 | Web application | `11.0.x` | `d0052c19eb4cacc7a7193272cce778d1fb96927e` |
 
 A Git commit cannot contain its own final hash. After the accepted deploy commit
@@ -115,7 +115,7 @@ Maintenance window and timezone:
 Approved release version:
 Deploy Git revision:
 Deploy signed release ref:
-API Git revision: 6042a05e9b8466b4191623da5d336ae048e36c08
+API Git revision: 26e13abc07d651d7c7b49a3e4b760f90161dd1a7
 API signed release ref:
 Web Git revision: d0052c19eb4cacc7a7193272cce778d1fb96927e
 Web signed release ref:

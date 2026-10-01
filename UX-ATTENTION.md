@@ -51,6 +51,12 @@ are recorded in the linked PRs. The migration was explicitly exercised through
 down/up/down/up in a separate disposable database, including old false choices,
 independent channels and a retained explicit digest cadence.
 
+The guarded all-features demo keeps seven curated student notices and seeds
+matching peer reminders with the same deadline identity as the real scheduler.
+Email, push and summary delivery start off for all synthetic accounts. Enable
+them explicitly in the local demo when testing through Mailpit. Re-seeding and
+repeated reminder sweeps are covered by the demo regression checks.
+
 The live browser walkthrough was blocked because the browser tool could not
 verify the local computer's security policy. It is not claimed complete. The
 institution still owns real SSO, SMTP, calendar refresh, physical-device push,

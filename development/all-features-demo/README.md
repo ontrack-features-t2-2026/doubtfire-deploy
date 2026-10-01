@@ -15,9 +15,15 @@ The matching API scenario is deterministic and development-only. One canonical
 registry creates generic `demo_*` accounts with `.invalid` email addresses, the
 exact ten-task lifecycle fixture (60% submitted and 10% complete), three
 privacy-safe PPI variants, one insufficient-cohort unit, seven distinct
-notification events, and one synthetic three-person group. It never creates a
+notification events for the demo student, matching in-app due-soon reminders for
+the synthetic peers, and one synthetic three-person group. It never creates a
 browser push subscription. The PPI responses retain every canonical status key
 and never expose raw counts, cohort sizes, names, usernames, or email addresses.
+
+All seeded accounts start with email, push and summary delivery off. Their in-app
+history remains available, and repeated reminder sweeps preserve the seeded
+snapshot. Enable the desired choices explicitly when testing delivery through
+the local Mailpit instance; browser push also needs separate device permission.
 
 The demo worker consumes the user-facing `mailers` and `notifications` queues.
 It deliberately leaves `default` untouched because this local stack does not
