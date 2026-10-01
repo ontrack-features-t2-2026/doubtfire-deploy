@@ -7,6 +7,7 @@ The Doubtfire Deploy repository is used to manage releases of Doubtfire using co
 
 ## Documentation
 
+- [Public OnTrack demo on Windows: one launcher, simple logins, optional custom domain](public-demo/README.md)
 - [Demo guide](DEMO.md)
 - [Release guide](RELEASING.md)
 - [Desktop PWA installation and release checks](DESKTOP-PWA.md)

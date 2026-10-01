@@ -1,0 +1,2 @@
+# All cron mail is captured inside this demo's Mailpit.
+root: host@ontrack-demo.invalid

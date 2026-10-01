@@ -1,0 +1,49 @@
+name: Validate public Windows demo
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/validate-public-demo.yml
+      - public-demo/**
+      - doubtfire-api
+      - doubtfire-web
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-launcher:
+    name: Windows PowerShell launcher
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Test with Windows PowerShell 5.1
+        shell: powershell
+        run: .\public-demo\tests\launcher_test.ps1
+
+  deployment-contract:
+    name: Public demo isolation and proxy
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Validate every Compose profile
+        run: |
+          docker compose --env-file public-demo/.env.example -f public-demo/compose.yml --profile setup --profile tunnel --profile quick config --format json > "$RUNNER_TEMP/public-demo.json"
+          python3 public-demo/compose_contract_test.py "$RUNNER_TEMP/public-demo.json"
+      - name: Check API and web source pins
+        run: |
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock = json.loads(Path('public-demo/sources.lock.json').read_text())
+          for source in lock['sources'][:2]:
+              revision = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + source['path']], text=True).strip()
+              assert source['revision'] == revision, source['path']
+          PY
+      - name: Test the real proxy upload boundary
+        run: |
+          docker build --tag ontrack-public-demo-proxy:local --file public-demo/proxy.Dockerfile public-demo
+          python3 public-demo/proxy_smoke_test.py
